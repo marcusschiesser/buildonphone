@@ -47,6 +47,7 @@ export function Studio({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Idle');
   const [streamedText, setStreamedText] = useState('');
+  const [currentToolCall, setCurrentToolCall] = useState<string | null>(null);
   const [files, setFiles] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
@@ -65,6 +66,7 @@ export function Studio({
     setBusy(true);
     setStatus('Queuing prompt');
     setStreamedText('');
+    setCurrentToolCall(null);
     setInput('');
 
     const userMsg = await localStorageAdapter.appendMessage(appId, {
@@ -95,11 +97,11 @@ export function Studio({
         onText: (delta) => {
           streamedTextBuffer += delta;
           setStreamedText((prev) => prev + delta);
-          setStatus('Streaming response');
         },
         onToolCall: (target) => {
           toolCalls += 1;
-          setStatus(`Running tool #${toolCalls}: ${target} (updating app files)`);
+          setCurrentToolCall(`#${toolCalls} ${target} (updating app files)`);
+          setStatus(`Running tool #${toolCalls}`);
         },
         onStatus: setStatus,
       });
@@ -148,6 +150,7 @@ export function Studio({
     } finally {
       setBusy(false);
       setStreamedText('');
+      setCurrentToolCall(null);
     }
   };
 
@@ -161,7 +164,10 @@ export function Studio({
   };
 
   const versionLabel = useMemo(() => (version > 0 ? `v${version}` : 'No build yet'), [version]);
-  const threadMessages = useMemo(() => getStudioThreadMessages(messages, busy, status, streamedText), [busy, messages, status, streamedText]);
+  const threadMessages = useMemo(
+    () => getStudioThreadMessages(messages, busy, status, streamedText, currentToolCall),
+    [busy, messages, status, streamedText, currentToolCall]
+  );
 
   return (
     <div className={STUDIO_SHELL_CLASS}>

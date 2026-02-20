@@ -12,27 +12,33 @@ const baseMessage: ChatMessage = {
 
 describe('studioThread', () => {
   it('returns persisted messages when not busy', () => {
-    const result = getStudioThreadMessages([baseMessage], false, 'Idle', '');
+    const result = getStudioThreadMessages([baseMessage], false, 'Idle', '', null);
     expect(result).toEqual([baseMessage]);
   });
 
   it('shows progress placeholder when busy and no stream text yet', () => {
-    const result = getStudioThreadMessages([baseMessage], true, 'Running tool #1: write_file', '');
+    const result = getStudioThreadMessages([baseMessage], true, 'Preparing generation', '', null);
     expect(result).toEqual([
       baseMessage,
       {
         id: '__generation-progress__',
         role: 'assistant',
-        content: 'Running tool #1: write_file',
+        content: 'Preparing generation',
         isProgress: true,
       },
     ]);
   });
 
-  it('shows streamed assistant content when available', () => {
-    const result = getStudioThreadMessages([baseMessage], true, 'Streaming response', 'partial output');
+  it('shows tool calls message above streamed assistant content', () => {
+    const result = getStudioThreadMessages([baseMessage], true, 'Streaming response', 'partial output', '#2 apply_patch (updating app files)');
     expect(result).toEqual([
       baseMessage,
+      {
+        id: '__generation-progress__',
+        role: 'assistant',
+        content: 'Running tool: #2 apply_patch (updating app files)',
+        isProgress: true,
+      },
       {
         id: '__assistant_stream__',
         role: 'assistant',

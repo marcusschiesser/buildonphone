@@ -11,28 +11,29 @@ export function getStudioThreadMessages(
   messages: ChatMessage[],
   busy: boolean,
   status: string,
-  streamedText: string
+  streamedText: string,
+  currentToolCall: string | null
 ): StudioThreadMessage[] {
   if (!busy) return messages;
 
-  if (streamedText.trim()) {
-    return [
-      ...messages,
-      {
-        id: '__assistant_stream__',
-        role: 'assistant',
-        content: streamedText,
-      },
-    ];
-  }
+  const progressContent = currentToolCall ? `Running tool: ${currentToolCall}` : status;
 
-  return [
-    ...messages,
+  const transientMessages: StudioThreadMessage[] = [
     {
       id: '__generation-progress__',
       role: 'assistant',
-      content: status,
+      content: progressContent,
       isProgress: true,
     },
   ];
+
+  if (streamedText.trim()) {
+    transientMessages.push({
+      id: '__assistant_stream__',
+      role: 'assistant',
+      content: streamedText,
+    });
+  }
+
+  return [...messages, ...transientMessages];
 }
