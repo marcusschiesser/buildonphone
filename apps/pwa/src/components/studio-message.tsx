@@ -9,10 +9,10 @@ export function StudioMessage({ message }: { message: StudioThreadMessage }) {
       {message.isProgress ? (
         <div className="flex items-center gap-2 text-zinc-100">
           <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-500 border-t-cyan-300" />
-          <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          <p className="max-w-full whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
         </div>
       ) : (
-        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+        <p className="max-w-full whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
       )}
     </article>
   );
