@@ -45,7 +45,7 @@ This file is the operating guide for AI coding agents working in this monorepo.
 - `apps/pwa/src/app/api/anthropic/messages/route.ts` (same-origin proxy to avoid browser CORS)
 
 ### Preview/run parity
-- `apps/pwa/src/components/preview.tsx`
+- `apps/pwa/src/components/preview/index.tsx`
 - `apps/pwa/src/app/run/[id]/page.tsx`
 
 ### App shell and security headers
@@ -107,6 +107,8 @@ App-only commands:
 - If changing storage schema, add migration logic in Dexie.
 - Keep user-facing error messages actionable (include upstream message when possible).
 - For new or updated UI behavior, extract dedicated components and isolate pure helper functions in `src/lib/**` where practical; add unit tests for those pure functions.
+- Do not extract trivial one-liner helpers into separate files; keep simple logic inline and only extract when it improves reuse, testability, or readability.
+- Organize feature UI in subfolders under `apps/pwa/src/components/**` (for example `components/preview/*`) instead of growing a flat components directory.
 - Use `lucide-react` for product UI icons; prefer icon-only controls only when they include `aria-label` (and `title` when appropriate).
 
 ## 10) Common Failure Modes and Fixes

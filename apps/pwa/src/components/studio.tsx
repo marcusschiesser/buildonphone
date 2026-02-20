@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ChatMessage, SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { getAnthropicKey } from '@/lib/security/byok';
+import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { PreviewFrame } from './preview';
@@ -49,10 +50,11 @@ export function Studio({
     void localStorageAdapter.listArtifacts(appId, version).then(setFiles);
   }, [appId, version]);
 
-  const send = async () => {
-    const text = input.trim();
+  const sendPrompt = async (rawText: string) => {
+    const text = rawText.trim();
     if (!text || busy) return;
     let toolCalls = 0;
+    let streamedTextBuffer = '';
 
     setBusy(true);
     setStatus('Queuing prompt');
@@ -85,6 +87,7 @@ export function Studio({
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         baseFiles,
         onText: (delta) => {
+          streamedTextBuffer += delta;
           setStreamedText((prev) => prev + delta);
           setStatus('Streaming response');
         },
@@ -118,7 +121,7 @@ export function Studio({
       const aiMsg = await localStorageAdapter.appendMessage(appId, {
         appId,
         role: 'assistant',
-        content: payload.text || streamedText || 'Generated files.',
+        content: payload.text || streamedTextBuffer || 'Generated files.',
         version: nextVersion,
       });
 
@@ -140,6 +143,15 @@ export function Studio({
       setBusy(false);
       setStreamedText('');
     }
+  };
+
+  const send = () => {
+    void sendPrompt(input);
+  };
+
+  const onPreviewFix = (payload: PreviewFixPayload) => {
+    if (busy) return;
+    void sendPrompt(buildFixPrompt(payload));
   };
 
   const versionLabel = useMemo(() => (version > 0 ? `v${version}` : 'No build yet'), [version]);
@@ -215,7 +227,7 @@ export function Studio({
         <section className={`${activeTab === 'preview' ? 'flex' : 'hidden'} min-h-0 flex-col rounded-3xl border border-cyan-300/20 bg-panel-2/50 p-3 lg:flex`}>
           <div className="mb-2 text-xs uppercase tracking-[0.2em] text-cyan-100">Live Preview</div>
           <div className="min-h-0 flex-1">
-            <PreviewFrame files={files} />
+            <PreviewFrame files={files} onFixError={onPreviewFix} />
           </div>
         </section>
       </div>
