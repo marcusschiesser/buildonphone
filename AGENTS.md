@@ -1,0 +1,145 @@
+# AGENTS.md
+
+This file is the operating guide for AI coding agents working in this monorepo.
+
+## 1) Project Overview
+
+- Repo: `superuser-pwa`
+- Goal: Prompt-to-app PWA where users bring their own Anthropic API key (BYOK).
+- Architecture: Turborepo + pnpm workspaces, with one active app at `apps/pwa`.
+
+## 2) Monorepo Layout
+
+- `apps/pwa`: Next.js App Router application (primary runtime)
+- `package.json` (root): Turbo task orchestration
+- `turbo.json`: pipeline for `dev`, `build`, `lint`, `typecheck`, `test`
+- `pnpm-workspace.yaml`: workspace package discovery
+
+## 3) App Stack (`apps/pwa`)
+
+- Framework: Next.js `16.1.6` (App Router)
+- UI: React `19`, Tailwind CSS
+- Storage: Dexie/IndexedDB
+- AI SDK: `ai` + `@ai-sdk/anthropic`
+
+## 4) Core Product Flows
+
+- `/`: app list, delete app, navigate to create/edit/run
+- `/create`: studio for prompt + generation + preview
+- `/edit/[id]`: load existing app and message history into studio
+- `/run/[id]`: full-screen run view using same preview component logic
+
+## 5) Key Source Files
+
+### Data and types
+- `apps/pwa/src/types/index.ts`
+- `apps/pwa/src/lib/storage/db.ts`
+
+### BYOK key handling
+- `apps/pwa/src/lib/security/byok.ts`
+- `apps/pwa/src/components/byok.tsx`
+
+### Generation
+- `apps/pwa/src/lib/agent/systemPrompt.ts`
+- `apps/pwa/src/lib/agent/browserAgent.ts`
+- `apps/pwa/src/app/api/anthropic/messages/route.ts` (same-origin proxy to avoid browser CORS)
+
+### Preview/run parity
+- `apps/pwa/src/components/preview.tsx`
+- `apps/pwa/src/app/run/[id]/page.tsx`
+
+### App shell and security headers
+- `apps/pwa/next.config.ts`
+- `apps/pwa/src/app/layout.tsx`
+- `apps/pwa/src/app/globals.css`
+
+## 6) Critical Constraints
+
+### BYOK security model
+- Users must provide their own Anthropic key.
+- Never store Anthropic keys server-side in DB/files.
+- Current implementation stores encrypted payload client-side and sends key per request to `/api/anthropic/messages`.
+
+### Browser-only safety
+- Keep client code browser-compatible.
+- Avoid Node-only imports/APIs in `apps/pwa/src/**`.
+- ESLint rule already blocks common Node imports in app source.
+
+### Preview/run consistency
+- Reuse `PreviewFrame` for both preview and run paths.
+- Do not diverge iframe sandbox/security behavior between preview and run.
+
+## 7) Security and CSP Notes
+
+`apps/pwa/next.config.ts` sets:
+- `COOP`/`COEP`
+- CSP
+- referrer/content-type/permissions policies
+
+If generated apps fail to render, check CSP + iframe sandbox first.
+Current iframe sandbox in `PreviewFrame` includes:
+- `allow-scripts`
+- `allow-forms`
+- `allow-popups`
+- `allow-same-origin`
+
+## 8) Commands
+
+From repo root (`../superuser-pwa`):
+
+- Install: `pnpm install`
+- Dev (all workspaces): `pnpm dev`
+- Build (all workspaces): `pnpm build`
+- Lint (all workspaces): `pnpm lint`
+- Typecheck (all workspaces): `pnpm typecheck`
+
+App-only commands:
+- `pnpm -C apps/pwa dev`
+- `pnpm -C apps/pwa lint`
+- `pnpm -C apps/pwa typecheck`
+- `pnpm -C apps/pwa build`
+
+## 9) Development Guidelines for Agents
+
+- Prefer targeted edits in existing files over broad rewrites.
+- Preserve route/API contracts unless explicitly changing behavior.
+- Keep generated-app compatibility in mind (Babel + React UMD style content in artifacts).
+- If changing storage schema, add migration logic in Dexie.
+- Keep user-facing error messages actionable (include upstream message when possible).
+
+## 10) Common Failure Modes and Fixes
+
+- **CORS errors to Anthropic from browser**:
+  - Use `/api/anthropic/messages` proxy route, not direct `api.anthropic.com` fetch from browser.
+
+- **"No output generated" from AI SDK**:
+  - Tool-only output may still produce valid artifacts.
+  - Ensure agent code treats artifact-only responses as success.
+
+- **Preview works but run fails**:
+  - Ensure `run/[id]` uses `PreviewFrame` and same sandbox settings.
+
+- **Missing key after reload**:
+  - Verify `byok.ts` localStorage path and `ByokPanel` status detection.
+
+## 11) When Making Security Changes
+
+- Do not tighten CSP or iframe sandbox without validating generated previews.
+- If you change security headers, immediately re-test:
+  - `/create` generation
+  - preview render
+  - `/run/[id]` render
+
+## 12) Validation Checklist (before handoff)
+
+Run and confirm all green:
+- `pnpm -C apps/pwa lint`
+- `pnpm -C apps/pwa typecheck`
+- `pnpm -C apps/pwa build`
+
+Then smoke-test manually:
+- Save BYOK key
+- Generate app from `/create`
+- Preview renders
+- `/run/[id]` matches preview
+- Reload app and ensure key/status persistence
