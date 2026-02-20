@@ -40,14 +40,15 @@ export function buildPreviewHtml(files: Record<string, string>): string {
   return htmlTemplate(code);
 }
 
-export function PreviewFrame({ files }: { files: Record<string, string> }) {
+export function PreviewFrame({ files, className }: { files: Record<string, string>; className?: string }) {
   const srcDoc = useMemo(() => buildPreviewHtml(files), [files]);
+  const frameClassName = className ?? 'h-full w-full rounded-2xl border border-cyan-300/20 bg-black';
 
   return (
     <iframe
       title="preview"
       srcDoc={srcDoc}
-      className="h-full w-full rounded-2xl border border-cyan-300/20 bg-black"
+      className={frameClassName}
       sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
     />
   );
