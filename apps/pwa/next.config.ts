@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=()'
+            value: 'camera=(self), microphone=(self), geolocation=(self), payment=(self)'
           }
         ],
       },

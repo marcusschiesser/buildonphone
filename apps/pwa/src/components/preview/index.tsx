@@ -111,6 +111,7 @@ export function PreviewFrame({
         title="preview"
         srcDoc={srcDoc}
         className={frameClassName}
+        allow="camera; microphone; geolocation; payment"
         sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
       />
       {runtimeError ? <PreviewRuntimeErrorPanel error={runtimeError} onFix={onFixError ? requestFix : undefined} /> : null}
