@@ -10,6 +10,7 @@ import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
+import { PreviewModeTabs } from './studio/preview-mode-tabs';
 
 const STUDIO_SHELL_CLASS = 'mx-auto flex h-dvh max-w-7xl flex-col overflow-hidden box-border p-4 lg:p-6';
 const STUDIO_PANEL_CLASS = 'h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-cyan-300/20 p-3';
@@ -50,6 +51,7 @@ export function Studio({
   const [currentToolCall, setCurrentToolCall] = useState<string | null>(null);
   const [files, setFiles] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
+  const [previewMode, setPreviewMode] = useState<'preview' | 'code'>('preview');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
 
   useEffect(() => {
@@ -237,9 +239,18 @@ export function Studio({
         </section>
 
         <section className={`${activeTab === 'preview' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} bg-panel-2/50 lg:flex`}>
-          <div className={STUDIO_TITLE_CLASS}>Live Preview</div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className={STUDIO_TITLE_CLASS}>Live Preview</div>
+            <PreviewModeTabs mode={previewMode} onChange={setPreviewMode} />
+          </div>
           <div className="min-h-0 flex-1">
-            <PreviewFrame files={files} onFixError={onPreviewFix} />
+            {previewMode === 'preview' ? (
+              <PreviewFrame files={files} onFixError={onPreviewFix} />
+            ) : (
+              <pre className="h-full w-full overflow-auto rounded-2xl border border-cyan-300/20 bg-black/40 p-3 text-xs leading-relaxed text-zinc-100">
+                <code>{files['app.jsx']?.trim() || '// No app.jsx generated yet.'}</code>
+              </pre>
+            )}
           </div>
         </section>
       </div>
