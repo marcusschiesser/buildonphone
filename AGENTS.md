@@ -106,7 +106,7 @@ App-only commands:
 - Keep generated-app compatibility in mind (Babel + React UMD style content in artifacts).
 - If changing storage schema, add migration logic in Dexie.
 - Keep user-facing error messages actionable (include upstream message when possible).
-- For new UI behavior, extract dedicated components and isolate pure helper functions in `src/lib/**` where practical; add unit tests for those pure functions.
+- For new or updated UI behavior, extract dedicated components and isolate pure helper functions in `src/lib/**` where practical; add unit tests for those pure functions.
 - Use `lucide-react` for product UI icons; prefer icon-only controls only when they include `aria-label` (and `title` when appropriate).
 
 ## 10) Common Failure Modes and Fixes

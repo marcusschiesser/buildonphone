@@ -5,8 +5,10 @@ import Link from 'next/link';
 import type { ChatMessage, SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { getAnthropicKey } from '@/lib/security/byok';
+import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { PreviewFrame } from './preview';
+import { StudioMessage } from './studio-message';
 
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
@@ -37,6 +39,7 @@ export function Studio({
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Idle');
+  const [streamedText, setStreamedText] = useState('');
   const [files, setFiles] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
@@ -49,9 +52,11 @@ export function Studio({
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+    let toolCalls = 0;
 
     setBusy(true);
     setStatus('Queuing prompt');
+    setStreamedText('');
     setInput('');
 
     const userMsg = await localStorageAdapter.appendMessage(appId, {
@@ -79,11 +84,13 @@ export function Studio({
         theme: initialApp?.theme ?? '',
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         baseFiles,
-        onText: () => {
+        onText: (delta) => {
+          setStreamedText((prev) => prev + delta);
           setStatus('Streaming response');
         },
         onToolCall: (target) => {
-          setStatus(`Running tool: ${target}`);
+          toolCalls += 1;
+          setStatus(`Running tool #${toolCalls}: ${target} (updating app files)`);
         },
         onStatus: setStatus,
       });
@@ -111,7 +118,7 @@ export function Studio({
       const aiMsg = await localStorageAdapter.appendMessage(appId, {
         appId,
         role: 'assistant',
-        content: payload.text || 'Generated files.',
+        content: payload.text || streamedText || 'Generated files.',
         version: nextVersion,
       });
 
@@ -131,10 +138,12 @@ export function Studio({
       setMessages((prev) => [...prev, aiMsg]);
     } finally {
       setBusy(false);
+      setStreamedText('');
     }
   };
 
   const versionLabel = useMemo(() => (version > 0 ? `v${version}` : 'No build yet'), [version]);
+  const threadMessages = useMemo(() => getStudioThreadMessages(messages, busy, status, streamedText), [busy, messages, status, streamedText]);
 
   return (
     <div className="mx-auto flex h-screen max-w-7xl flex-col p-4 lg:p-6">
@@ -159,9 +168,7 @@ export function Studio({
           </p>
           </div>
         </div>
-        <div className="rounded-lg border border-cyan-300/20 bg-panel/60 px-3 py-1 text-xs text-cyan-100">
-          {status} · {versionLabel}
-        </div>
+        <div className="rounded-lg border border-cyan-300/20 bg-panel/60 px-3 py-1 text-xs text-cyan-100">{versionLabel}</div>
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-zinc-800 bg-panel/60 p-1 lg:hidden">
@@ -183,15 +190,9 @@ export function Studio({
         <section className={`${activeTab === 'chat' ? 'flex' : 'hidden'} min-h-0 flex-col rounded-3xl border border-cyan-300/20 bg-panel/75 p-3 lg:flex`}>
           <div className="mb-2 text-xs uppercase tracking-[0.2em] text-cyan-100">Prompt Thread</div>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-2xl border border-zinc-800 bg-black/25 p-3">
-            {messages.length === 0 ? <p className="text-sm text-zinc-400">Describe the app you want to build.</p> : null}
-            {messages.map((m) => (
-              <article
-                key={m.id}
-                className={`rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'ml-6 bg-cyan-400/15 text-cyan-100' : 'mr-6 bg-zinc-900 text-zinc-100'}`}
-              >
-                <div className="mb-1 text-[10px] uppercase tracking-[0.2em] text-zinc-400">{m.role}</div>
-                <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-              </article>
+            {threadMessages.length === 0 ? <p className="text-sm text-zinc-400">Describe the app you want to build.</p> : null}
+            {threadMessages.map((m) => (
+              <StudioMessage key={m.id} message={m} />
             ))}
           </div>
           <div className="mt-3 flex gap-2">
