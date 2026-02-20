@@ -1,0 +1,15 @@
+{
+  "name": "Claw2go",
+  "short_name": "Claw2go",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f1a",
+  "theme_color": "#0b0f1a",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
