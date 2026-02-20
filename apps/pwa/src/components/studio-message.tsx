@@ -1,4 +1,5 @@
 import type { StudioThreadMessage } from '@/lib/ui/studioThread';
+import { StudioMarkdownRenderer } from './studio/markdown-renderer';
 
 export function StudioMessage({ message }: { message: StudioThreadMessage }) {
   return (
@@ -12,7 +13,7 @@ export function StudioMessage({ message }: { message: StudioThreadMessage }) {
           <p className="max-w-full whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
         </div>
       ) : (
-        <p className="max-w-full whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
+        <StudioMarkdownRenderer content={message.content} />
       )}
     </article>
   );

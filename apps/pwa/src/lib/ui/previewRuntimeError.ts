@@ -10,7 +10,9 @@ export function buildFixPrompt(payload: PreviewFixPayload): string {
   const { errorMessage, stack } = payload;
   const normalized = errorMessage.trim() || 'Unknown runtime error';
   const normalizedStack = stack?.trim();
-  return normalizedStack ? `${PREVIEW_FIX_PROMPT_PREFIX}${normalized}\n\nStack trace:\n${normalizedStack}` : `${PREVIEW_FIX_PROMPT_PREFIX}${normalized}`;
+  return normalizedStack
+    ? `${PREVIEW_FIX_PROMPT_PREFIX}${normalized}\n\nStack trace:\n\`\`\`\n${normalizedStack}\n\`\`\``
+    : `${PREVIEW_FIX_PROMPT_PREFIX}${normalized}`;
 }
 
 export function parsePreviewRuntimeErrorEvent(data: unknown): PreviewFixPayload | null {
