@@ -6,14 +6,14 @@ This file is the operating guide for AI coding agents working in this monorepo.
 
 - Repo: `superuser-pwa`
 - Goal: Prompt-to-app PWA where users bring their own Anthropic API key (BYOK).
-- Architecture: Turborepo + pnpm workspaces, with one active app at `apps/pwa`.
+- Architecture: Turborepo + npm workspaces, with one active app at `apps/pwa`.
 
 ## 2) Monorepo Layout
 
 - `apps/pwa`: Next.js App Router application (primary runtime)
 - `package.json` (root): Turbo task orchestration
 - `turbo.json`: pipeline for `dev`, `build`, `lint`, `typecheck`, `test`
-- `pnpm-workspace.yaml`: workspace package discovery
+- `package.json` workspaces: workspace package discovery
 
 ## 3) App Stack (`apps/pwa`)
 
@@ -87,17 +87,17 @@ Current iframe sandbox in `PreviewFrame` includes:
 
 From repo root (`../superuser-pwa`):
 
-- Install: `pnpm install`
-- Dev (all workspaces): `pnpm dev`
-- Build (all workspaces): `pnpm build`
-- Lint (all workspaces): `pnpm lint`
-- Typecheck (all workspaces): `pnpm typecheck`
+- Install: `npm install`
+- Dev (all workspaces): `npm run dev`
+- Build (all workspaces): `npm run build`
+- Lint (all workspaces): `npm run lint`
+- Typecheck (all workspaces): `npm run typecheck`
 
 App-only commands:
-- `pnpm -C apps/pwa dev`
-- `pnpm -C apps/pwa lint`
-- `pnpm -C apps/pwa typecheck`
-- `pnpm -C apps/pwa build`
+- `npm run dev --workspace @claw2go/pwa`
+- `npm run lint --workspace @claw2go/pwa`
+- `npm run typecheck --workspace @claw2go/pwa`
+- `npm run build --workspace @claw2go/pwa`
 
 ## 9) Development Guidelines for Agents
 
@@ -135,9 +135,9 @@ App-only commands:
 ## 12) Validation Checklist (before handoff)
 
 Run and confirm all green:
-- `pnpm -C apps/pwa lint`
-- `pnpm -C apps/pwa typecheck`
-- `pnpm -C apps/pwa build`
+- `npm run lint --workspace @claw2go/pwa`
+- `npm run typecheck --workspace @claw2go/pwa`
+- `npm run build --workspace @claw2go/pwa`
 
 Then smoke-test manually:
 - Save BYOK key
