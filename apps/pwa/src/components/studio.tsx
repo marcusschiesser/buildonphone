@@ -89,13 +89,16 @@ export function Studio({
     try {
       const nextVersion = version + 1;
       setStatus('Preparing generation');
-      const baseFiles = version > 0 ? await localStorageAdapter.listArtifacts(appId, version) : {};
+      const storedBaseFiles = version > 0 ? await localStorageAdapter.listArtifacts(appId, version) : {};
+      const baseFiles =
+        version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(files).length > 0 ? files : storedBaseFiles;
 
       const payload = await runBrowserAgent({
         apiKey,
         theme: initialApp?.theme ?? '',
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         baseFiles,
+        baseVersion: version,
         onText: (delta) => {
           streamedTextBuffer += delta;
           setStreamedText((prev) => prev + delta);

@@ -8,6 +8,7 @@ Requirements:
 - Assume React and ReactDOM globals are available.
 - Assume an AI bridge object is available as window.__CLAW2GO_AI__.
 - Use window.__CLAW2GO_AI__.streamText(...) for AI calls.
+- For follow-up edits, use current runtime file contents as source of truth and make targeted changes instead of unrelated rewrites.
 - Do not set or configure provider/model fields in generated code; host runtime controls both.
 - For structured output, call streamText with output: { type: 'object', schema: <JSON schema object> } and consume partialOutputStream.
 - For structured output in generated apps, schema must be a plain JSON Schema object (no zod, no Output.object, no jsonSchema calls in generated code).
