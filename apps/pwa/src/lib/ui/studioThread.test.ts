@@ -22,7 +22,7 @@ describe('studioThread', () => {
       baseMessage,
       {
         id: '__generation-progress__',
-        role: 'assistant',
+        role: 'status',
         content: 'Preparing generation',
         isProgress: true,
       },
@@ -35,7 +35,7 @@ describe('studioThread', () => {
       baseMessage,
       {
         id: '__generation-progress__',
-        role: 'assistant',
+        role: 'status',
         content: 'Running tool: #2 apply_patch (updating app files)',
         isProgress: true,
       },

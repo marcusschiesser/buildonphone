@@ -2,6 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
+  PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
+  PREVIEW_AI_DONE_EVENT_TYPE,
+  PREVIEW_AI_ERROR_EVENT_TYPE,
+  PREVIEW_AI_REQUEST_EVENT_TYPE,
+  executePreviewAiRequest,
+  parsePreviewAiRequestEvent,
+} from '@/lib/ui/previewAiBridge';
+import {
   PREVIEW_RUNTIME_ERROR_EVENT_TYPE,
   type PreviewFixPayload,
   parsePreviewRuntimeErrorEvent,
@@ -20,6 +29,119 @@ function htmlTemplate(code: string): string {
     <div id="preview-root"></div>
     <script>
       (function () {
+        var bridgeRequestCounter = 0;
+
+        function createAsyncQueue() {
+          var values = [];
+          var waiters = [];
+          var isDone = false;
+          var doneError = null;
+
+          function resolveWaiter(nextValue) {
+            var waiter = waiters.shift();
+            if (waiter) waiter.resolve(nextValue);
+          }
+
+          return {
+            push: function (value) {
+              if (isDone) return;
+              if (waiters.length > 0) {
+                resolveWaiter({ value: value, done: false });
+                return;
+              }
+              values.push(value);
+            },
+            done: function () {
+              if (isDone) return;
+              isDone = true;
+              while (waiters.length > 0) {
+                resolveWaiter({ value: undefined, done: true });
+              }
+            },
+            error: function (error) {
+              if (isDone) return;
+              isDone = true;
+              doneError = error;
+              while (waiters.length > 0) {
+                var waiter = waiters.shift();
+                if (waiter) waiter.reject(error);
+              }
+            },
+            iterable: {
+              [Symbol.asyncIterator]: function () {
+                return {
+                  next: function () {
+                    if (values.length > 0) {
+                      return Promise.resolve({ value: values.shift(), done: false });
+                    }
+                    if (isDone) {
+                      if (doneError) return Promise.reject(doneError);
+                      return Promise.resolve({ value: undefined, done: true });
+                    }
+                    return new Promise(function (resolve, reject) {
+                      waiters.push({ resolve: resolve, reject: reject });
+                    });
+                  },
+                };
+              },
+            },
+          };
+        }
+
+        window.__CLAW2GO_AI__ = {
+          streamText: async function (input) {
+            if (!(window.parent && window.parent !== window)) {
+              throw new Error('AI bridge unavailable: host window missing.');
+            }
+
+            bridgeRequestCounter += 1;
+            var requestId = 'bridge-' + Date.now() + '-' + bridgeRequestCounter;
+            var isObjectOutput = Boolean(input && input.output && input.output.type === 'object');
+            var queue = createAsyncQueue();
+
+            function cleanup() {
+              window.removeEventListener('message', onBridgeMessage);
+            }
+
+            function onBridgeMessage(event) {
+              var data = event && event.data;
+              if (!data || data.requestId !== requestId) return;
+
+              if (data.type === '${PREVIEW_AI_ERROR_EVENT_TYPE}') {
+                cleanup();
+                queue.error(new Error(data.error || 'AI bridge request failed.'));
+                return;
+              }
+
+              if (data.type === '${PREVIEW_AI_DONE_EVENT_TYPE}') {
+                cleanup();
+                queue.done();
+                return;
+              }
+
+              if (!isObjectOutput && data.type === '${PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE}') {
+                queue.push(typeof data.text === 'string' ? data.text : String(data.text || ''));
+              }
+
+              if (isObjectOutput && data.type === '${PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE}') {
+                queue.push(data.object || {});
+              }
+            }
+
+            window.addEventListener('message', onBridgeMessage);
+            window.parent.postMessage(
+              {
+                type: '${PREVIEW_AI_REQUEST_EVENT_TYPE}',
+                requestId: requestId,
+                input: input || {},
+              },
+              '*'
+            );
+
+            return isObjectOutput ? { partialOutputStream: queue.iterable } : { textStream: queue.iterable };
+          },
+        };
+
         function reportRuntimeError(message, stack) {
           if (window.parent && window.parent !== window) {
             window.parent.postMessage(
@@ -74,19 +196,69 @@ export function PreviewFrame({
   const hasCode = Boolean(files['app.jsx']?.trim());
   const srcDoc = useMemo(() => buildPreviewHtml(files), [files]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [runtimeError, setRuntimeError] = useState<PreviewFixPayload | null>(null);
+  const srcDocRef = useRef(srcDoc);
+  const [runtimeError, setRuntimeError] = useState<{ srcDoc: string; payload: PreviewFixPayload } | null>(null);
   const frameClassName = className ?? 'h-full w-full rounded-2xl border border-cyan-300/20 bg-black';
 
   useEffect(() => {
-    setRuntimeError(null);
+    srcDocRef.current = srcDoc;
   }, [srcDoc]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
       if (!iframeRef.current?.contentWindow || event.source !== iframeRef.current.contentWindow) return;
-      const payload = parsePreviewRuntimeErrorEvent(event.data);
-      if (!payload) return;
-      setRuntimeError(payload);
+
+      const runtimeError = parsePreviewRuntimeErrorEvent(event.data);
+      if (runtimeError) {
+        setRuntimeError({
+          srcDoc: srcDocRef.current,
+          payload: runtimeError,
+        });
+        return;
+      }
+
+      const aiRequest = parsePreviewAiRequestEvent(event.data);
+      if (!aiRequest) return;
+
+      void (async () => {
+        const target = iframeRef.current?.contentWindow;
+        if (!target) return;
+
+        const postResponse = (payload: Record<string, unknown>) => {
+          target.postMessage(
+            {
+              requestId: aiRequest.requestId,
+              ...payload,
+            },
+            '*'
+          );
+        };
+
+        try {
+          await executePreviewAiRequest(aiRequest.input, {
+            onTextChunk: (textChunk) => {
+              postResponse({
+                type: PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
+                text: textChunk,
+              });
+            },
+            onObjectChunk: (objectChunk) => {
+              postResponse({
+                type: PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
+                object: objectChunk,
+              });
+            },
+          });
+
+          postResponse({ type: PREVIEW_AI_DONE_EVENT_TYPE });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          postResponse({
+            type: PREVIEW_AI_ERROR_EVENT_TYPE,
+            error: message,
+          });
+        }
+      })();
     };
 
     window.addEventListener('message', onMessage);
@@ -95,9 +267,11 @@ export function PreviewFrame({
     };
   }, []);
 
+  const activeRuntimeError = runtimeError?.srcDoc === srcDoc ? runtimeError.payload : null;
+
   const requestFix = () => {
-    if (!runtimeError || !onFixError) return;
-    onFixError(runtimeError);
+    if (!activeRuntimeError || !onFixError) return;
+    onFixError(activeRuntimeError);
   };
 
   if (!hasCode) {
@@ -114,7 +288,9 @@ export function PreviewFrame({
         allow="camera; microphone; geolocation; payment"
         sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
       />
-      {runtimeError ? <PreviewRuntimeErrorPanel error={runtimeError} onFix={onFixError ? requestFix : undefined} /> : null}
+      {activeRuntimeError ? (
+        <PreviewRuntimeErrorPanel error={activeRuntimeError} onFix={onFixError ? requestFix : undefined} />
+      ) : null}
     </div>
   );
 }

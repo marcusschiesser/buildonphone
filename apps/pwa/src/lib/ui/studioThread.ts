@@ -2,7 +2,7 @@ import type { ChatMessage } from '@/types';
 
 export interface StudioThreadMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'status';
   content: string;
   isProgress?: boolean;
 }
@@ -21,7 +21,7 @@ export function getStudioThreadMessages(
   const transientMessages: StudioThreadMessage[] = [
     {
       id: '__generation-progress__',
-      role: 'assistant',
+      role: 'status',
       content: progressContent,
       isProgress: true,
     },
