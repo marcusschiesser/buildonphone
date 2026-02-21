@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
+import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 
@@ -11,7 +12,15 @@ export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
 
   useEffect(() => {
-    void localStorageAdapter.listApps().then(setApps);
+    let active = true;
+    void (async () => {
+      const nextApps = await ensureDefaultAppsSeededClient();
+      if (active) setApps(nextApps);
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const renameApp = async (appId: string, nextName: string) => {

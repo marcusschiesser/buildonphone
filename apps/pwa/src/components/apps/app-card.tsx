@@ -67,7 +67,18 @@ export function AppCard({ app, onRename, onDelete }: AppCardProps) {
         </div>
       ) : (
         <>
-          <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
+            <span
+              className={
+                app.isDefault
+                  ? 'rounded-full border border-cyan-300/50 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200'
+                  : 'rounded-full border border-zinc-500/60 bg-zinc-800/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300'
+              }
+            >
+              {app.isDefault ? 'Default' : 'My App'}
+            </span>
+          </div>
           <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{app.description || 'No description'}</p>
         </>
       )}

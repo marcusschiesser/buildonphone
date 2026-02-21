@@ -4,6 +4,7 @@ export interface SuApp {
   description: string;
   icon: string;
   theme: string;
+  isDefault?: boolean;
   currentVersion: number;
   createdAt: string;
   updatedAt: string;
