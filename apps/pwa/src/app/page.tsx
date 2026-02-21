@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { ByokPanel } from '@/components/byok';
+import { AppCard } from '@/components/apps/app-card';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
@@ -12,6 +13,16 @@ export default function HomePage() {
   useEffect(() => {
     void localStorageAdapter.listApps().then(setApps);
   }, []);
+
+  const renameApp = async (appId: string, nextName: string) => {
+    const updated = await localStorageAdapter.updateApp(appId, { name: nextName });
+    setApps((prev) => prev.map((app) => (app.id === appId ? updated : app)));
+  };
+
+  const deleteApp = async (appId: string) => {
+    await localStorageAdapter.deleteApp(appId);
+    setApps((prev) => prev.filter((app) => app.id !== appId));
+  };
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl p-5 lg:p-8">
@@ -44,23 +55,7 @@ export default function HomePage() {
           <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with “New App”.</div>
         ) : (
           apps.map((app) => (
-            <article key={app.id} className="rounded-3xl border border-cyan-200/20 bg-panel/70 p-4">
-              <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
-              <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{app.description || 'No description'}</p>
-              <div className="mt-4 flex gap-2">
-                <Link className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200" href={`/run/${app.id}`}>Run</Link>
-                <Link className="rounded-xl bg-accent-2 px-3 py-2 text-sm font-semibold text-black" href={`/edit/${app.id}`}>Edit</Link>
-                <button
-                  onClick={async () => {
-                    await localStorageAdapter.deleteApp(app.id);
-                    setApps((prev) => prev.filter((x) => x.id !== app.id));
-                  }}
-                  className="rounded-xl border border-red-400/50 px-3 py-2 text-sm text-red-200"
-                >
-                  Delete
-                </button>
-              </div>
-            </article>
+            <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} />
           ))
         )}
       </section>
