@@ -7,6 +7,7 @@ import { localStorageAdapter } from '@/lib/storage/db';
 import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
+import { InstallButton } from '@/components/install-button';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
@@ -52,7 +53,10 @@ export default function HomePage() {
             .
           </p>
         </div>
-        <Link href="/create" className="rounded-2xl bg-accent px-4 py-2 font-semibold text-black">New App</Link>
+        <div className="flex items-center gap-2">
+          <InstallButton />
+          <Link href="/create" className="rounded-2xl bg-accent px-4 py-2 font-semibold text-black">New App</Link>
+        </div>
       </header>
 
       <div className="mb-6">
