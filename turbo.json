@@ -3,11 +3,13 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["ANTHROPIC_API_KEY"]
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**"]
+      "outputs": [".next/**", "dist/**"],
+      "passThroughEnv": ["ANTHROPIC_API_KEY"]
     },
     "lint": {
       "dependsOn": ["^lint"]

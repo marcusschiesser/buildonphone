@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { clearAnthropicKey, hasAnthropicKey, setAnthropicKey } from '@/lib/security/byok';
+import { getServerConfig } from '@/lib/server-config';
 
 export function ByokPanel() {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('');
   const [hasKey, setHasKey] = useState(false);
+  const [serverManaged, setServerManaged] = useState(false);
 
   useEffect(() => {
-    void hasAnthropicKey().then((present) => {
+    void Promise.all([
+      getServerConfig(),
+      hasAnthropicKey(),
+    ]).then(([{ hasServerKey }, present]) => {
+      setServerManaged(hasServerKey);
       setHasKey(present);
       if (present) setStatus('Key saved in this browser.');
     });
   }, []);
+
+  if (serverManaged) return null;
 
   return (
     <div className="rounded-2xl border border-cyan-300/25 bg-panel/80 p-4 backdrop-blur scanline">

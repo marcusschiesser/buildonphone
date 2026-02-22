@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { stepCountIs, type ModelMessage } from 'ai';
 import { CodingAgent } from 'edge-pi';
+import { DEFAULT_MODEL } from '../model';
 import { getSystemPrompt } from './systemPrompt';
 import { getBrowserRuntime, hydrateContainer, readGeneratedAppJsx } from './webcontainerSession';
 
@@ -107,7 +108,7 @@ export async function runBrowserAgent(input: BrowserAgentInput): Promise<Browser
 
   const runtime = await getBrowserRuntime();
   const agent = new CodingAgent({
-    model: anthropic('claude-sonnet-4-5-20250929'),
+    model: anthropic(DEFAULT_MODEL),
     runtime,
     cwd: '.',
     stopWhen: stepCountIs(8),

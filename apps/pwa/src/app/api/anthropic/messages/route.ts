@@ -14,7 +14,9 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get('x-api-key')?.trim();
+  const serverKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const clientKey = req.headers.get('x-api-key')?.trim();
+  const apiKey = serverKey || clientKey;
   if (!apiKey) {
     return NextResponse.json({ error: 'Missing x-api-key header.' }, { status: 400 });
   }
