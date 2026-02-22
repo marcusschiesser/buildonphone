@@ -37,6 +37,9 @@ jobs:
       - name: Install Playwright browser
         run: npm exec --workspace @claw2go/pwa -- playwright install --with-deps chromium
 
+      - name: Run PWA lint/typecheck
+        run: npm run ci:check --workspace @claw2go/pwa
+
       - name: Run PWA smoke test
         env:
           NEXT_PUBLIC_FAKE_GENERATION: '1'
