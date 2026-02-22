@@ -1,11 +1,25 @@
-const { useMemo, useState } = React;
+const { useEffect, useMemo, useState } = React;
+
+const DEFAULT_HABITS = [
+  { id: 'walk', name: '10 min walk', streak: 2 },
+  { id: 'water', name: 'Drink water', streak: 4 },
+  { id: 'sleep', name: 'Sleep before 11pm', streak: 1 }
+];
 
 function App() {
-  const [items, setItems] = useState([
-    { id: 'walk', name: '10 min walk', streak: 2 },
-    { id: 'water', name: 'Drink water', streak: 4 },
-    { id: 'sleep', name: 'Sleep before 11pm', streak: 1 }
-  ]);
+  const [items, setItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('habits');
+      return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    } catch {
+      return DEFAULT_HABITS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('habits', JSON.stringify(items));
+  }, [items]);
+
   const [newHabit, setNewHabit] = useState('');
 
   const totalStreak = useMemo(() => items.reduce((sum, item) => sum + item.streak, 0), [items]);
