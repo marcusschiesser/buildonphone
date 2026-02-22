@@ -1,0 +1,40 @@
+name: PWA Checks
+
+on:
+  pull_request:
+    paths:
+      - 'apps/pwa/**'
+      - '.github/workflows/pwa-checks.yml'
+      - '.github/workflows/pwa-smoke.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/pwa/**'
+      - '.github/workflows/pwa-checks.yml'
+      - '.github/workflows/pwa-smoke.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run PWA lint/typecheck
+        run: npm run ci:check --workspace @claw2go/pwa

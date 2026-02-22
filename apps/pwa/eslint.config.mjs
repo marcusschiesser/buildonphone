@@ -8,25 +8,13 @@ const eslintConfig = defineConfig([
   {
     files: ["src/**/*.{ts,tsx,js,jsx,mjs,mts}"],
     rules: {
-      "no-restricted-imports": [
+      "no-restricted-syntax": [
         "error",
         {
-          paths: [
-            "fs",
-            "path",
-            "os",
-            "child_process",
-            "worker_threads",
-            "stream",
-            "crypto",
-            "node:fs",
-            "node:path",
-            "node:os",
-            "node:child_process",
-            "node:worker_threads",
-            "node:stream",
-            "node:crypto"
-          ]
+          selector:
+            "Program:has(ExpressionStatement[directive='use client']) > ImportDeclaration[source.value=/^(fs|path|os|child_process|worker_threads|stream|crypto|node:fs|node:path|node:os|node:child_process|node:worker_threads|node:stream|node:crypto)$/]",
+          message:
+            "Node-specific modules are not allowed in client components. Move this code to a server-only module or route handler.",
         }
       ]
     }
