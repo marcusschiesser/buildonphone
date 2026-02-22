@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { clearAnthropicKey, hasAnthropicKey, setAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function ByokPanel() {
   const [value, setValue] = useState('');
@@ -28,14 +30,13 @@ export function ByokPanel() {
       <div className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">Anthropic BYOK</div>
       <p className="mb-3 text-xs text-zinc-300">Your key is encrypted in browser storage and never persisted server-side.</p>
       <div className="flex gap-2">
-        <input
+        <Input
           type="password"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={hasKey ? '•••••••••••••••• (saved)' : 'sk-ant-...'}
-          className="w-full rounded-xl border border-zinc-700 bg-black/40 px-3 py-2 text-sm outline-none focus:border-cyan-300"
         />
-        <button
+        <Button
           onClick={async () => {
             if (!value.trim()) return;
             await setAnthropicKey(value.trim());
@@ -43,20 +44,21 @@ export function ByokPanel() {
             setHasKey(true);
             setStatus('Saved');
           }}
-          className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-black"
+          size="sm"
         >
           Save
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={async () => {
             await clearAnthropicKey();
             setHasKey(false);
             setStatus('Removed');
           }}
-          className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200"
         >
           Forget
-        </button>
+        </Button>
       </div>
       {status ? <div className="mt-2 text-xs text-cyan-200">{status}</div> : null}
     </div>

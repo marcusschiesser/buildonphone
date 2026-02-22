@@ -1,4 +1,5 @@
 import type { PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
+import { Button } from '@/components/ui/button';
 
 export function PreviewRuntimeErrorPanel({
   error,
@@ -18,13 +19,9 @@ export function PreviewRuntimeErrorPanel({
       ) : null}
       {onFix ? (
         <div className="mt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={onFix}
-            className="rounded-lg border border-cyan-300/40 bg-cyan-500/20 px-3 py-1.5 text-xs font-medium text-cyan-100 hover:bg-cyan-500/30"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={onFix}>
             Fix
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>
