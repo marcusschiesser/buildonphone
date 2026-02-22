@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
-import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
+import { ensureDefaultAppsSeededClient, ensureDefaultAppsMigratedClient } from '@/lib/apps/defaultAppsSeedingClient';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 import { InstallButton } from '@/components/install-button';
@@ -16,6 +16,7 @@ export default function HomePage() {
     let active = true;
     void (async () => {
       const nextApps = await ensureDefaultAppsSeededClient();
+      await ensureDefaultAppsMigratedClient();
       if (active) setApps(nextApps);
     })();
 

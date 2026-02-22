@@ -1,6 +1,7 @@
 import type { SuApp } from "@/types";
 
 export const DEFAULT_APPS_SEED_FLAG = "default-apps-seeded-v1";
+export const HABIT_TRACKER_LOCALSTORAGE_MIGRATION_FLAG = "habit-tracker-localstorage-v1";
 
 export interface DefaultAppSeed {
   app: Omit<SuApp, "createdAt" | "updatedAt">;

@@ -1,5 +1,5 @@
 import type { SuApp } from '@/types';
-import { DEFAULT_APP_SEEDS, shouldSeedDefaultApps } from './defaultApps';
+import { DEFAULT_APP_SEEDS, HABIT_TRACKER_LOCALSTORAGE_MIGRATION_FLAG, shouldSeedDefaultApps } from './defaultApps';
 
 export interface DefaultAppsSeedingDeps {
   listApps: () => Promise<SuApp[]>;
@@ -9,6 +9,30 @@ export interface DefaultAppsSeedingDeps {
   loadSource: (sourcePath: string) => Promise<string>;
   getSeedFlag: () => Promise<string | null>;
   setSeedFlag: (value: string) => Promise<void>;
+}
+
+export interface DefaultAppsMigrationDeps {
+  getApp: (id: string) => Promise<SuApp | null>;
+  writeArtifact: (appId: string, version: number, filename: string, content: string) => Promise<void>;
+  loadSource: (sourcePath: string) => Promise<string>;
+  getMigrationFlag: (name: string) => Promise<string | null>;
+  setMigrationFlag: (name: string, value: string) => Promise<void>;
+}
+
+export async function ensureDefaultAppsMigrated(deps: DefaultAppsMigrationDeps): Promise<void> {
+  const flag = await deps.getMigrationFlag(HABIT_TRACKER_LOCALSTORAGE_MIGRATION_FLAG);
+  if (flag === '1') return;
+
+  const habitApp = await deps.getApp('default-habit-streak');
+  if (habitApp) {
+    const seed = DEFAULT_APP_SEEDS.find((s) => s.app.id === 'default-habit-streak');
+    if (seed) {
+      const newSource = await deps.loadSource(seed.sourcePath);
+      await deps.writeArtifact('default-habit-streak', habitApp.currentVersion, 'app.jsx', newSource);
+    }
+  }
+
+  await deps.setMigrationFlag(HABIT_TRACKER_LOCALSTORAGE_MIGRATION_FLAG, '1');
 }
 
 export async function ensureDefaultAppsSeeded(deps: DefaultAppsSeedingDeps): Promise<SuApp[]> {
