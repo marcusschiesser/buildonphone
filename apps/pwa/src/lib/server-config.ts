@@ -1,4 +1,4 @@
-type ServerConfig = { hasServerKey: boolean };
+type ServerConfig = { hasServerKey: boolean; requiresPassword: boolean };
 
 let cache: ServerConfig | null = null;
 

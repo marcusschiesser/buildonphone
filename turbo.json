@@ -4,12 +4,12 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["ANTHROPIC_API_KEY"]
+      "passThroughEnv": ["ANTHROPIC_API_KEY", "APP_PASSWORD"]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "dist/**"],
-      "passThroughEnv": ["ANTHROPIC_API_KEY"]
+      "passThroughEnv": ["ANTHROPIC_API_KEY", "APP_PASSWORD"]
     },
     "lint": {
       "dependsOn": ["^lint"]
