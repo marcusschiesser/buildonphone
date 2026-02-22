@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
   }
 
-  const token = computeAuthToken(process.env.APP_PASSWORD!.trim());
+  const token = await computeAuthToken(process.env.APP_PASSWORD!.trim());
   const isProd = process.env.NODE_ENV === 'production';
 
   const res = NextResponse.json({ ok: true });

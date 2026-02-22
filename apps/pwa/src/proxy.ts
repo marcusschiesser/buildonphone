@@ -7,7 +7,7 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-export function proxy(req: NextRequest): NextResponse {
+export async function proxy(req: NextRequest): Promise<NextResponse> {
   if (!isPasswordProtectionEnabled()) {
     return NextResponse.next();
   }
@@ -19,7 +19,7 @@ export function proxy(req: NextRequest): NextResponse {
   }
 
   const cookieValue = req.cookies.get(COOKIE_NAME)?.value;
-  const authenticated = !!cookieValue && verifyAuthCookie(cookieValue);
+  const authenticated = !!cookieValue && (await verifyAuthCookie(cookieValue));
 
   if (!authenticated) {
     const isApiRoute = pathname.startsWith('/api/');
