@@ -19,4 +19,7 @@ Open `http://localhost:3000`.
 npm run lint --workspace @claw2go/pwa
 npm run typecheck --workspace @claw2go/pwa
 npm run build --workspace @claw2go/pwa
+
+# CI smoke flow without Anthropic key
+NEXT_PUBLIC_FAKE_GENERATION=1 npm run smoke --workspace @claw2go/pwa
 ```

@@ -5,6 +5,7 @@ import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { getAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
 import { localStorageAdapter } from '@/lib/storage/db';
+import { isFakeGenerationEnabled, runFakeGeneration } from './fakeGeneration';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
 
@@ -78,61 +79,75 @@ export async function startGeneration(params: {
       status: 'Preparing generation',
     });
 
-    const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-    if (!apiKey && !hasServerKey) {
-      const message = 'Missing Anthropic key';
-      const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
-        appId: params.appId,
-        role: 'assistant',
-        content: `Error: ${message}`,
-      });
-
-      setGenerationResult(params.appId, {
-        ok: false,
-        error: message,
-        assistantMessage,
-        completedAt: Date.now(),
-      });
-      notifyGenerationComplete({ appName, ok: false, error: message });
-      return;
-    }
-
     const nextVersion = params.version + 1;
-    const storedBaseFiles = params.version > 0 ? await localStorageAdapter.listArtifacts(params.appId, params.version) : {};
-    const baseFiles =
-      params.version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(params.files).length > 0
-        ? params.files
-        : storedBaseFiles;
+    const onText = (delta: string) => {
+      streamedTextBuffer += delta;
+      patchGeneration(params.appId, {
+        phase: 'running',
+        streamedText: `${getGeneration(params.appId)?.streamedText ?? ''}${delta}`,
+      });
+    };
+    const onToolCall = (target: string) => {
+      toolCallCount += 1;
+      patchGeneration(params.appId, {
+        phase: 'running',
+        toolCallCount,
+        currentToolCall: `#${toolCallCount} ${target} (updating app files)`,
+        status: `Running tool #${toolCallCount}`,
+      });
+    };
+    const onStatus = (status: string) => {
+      patchGeneration(params.appId, {
+        phase: status.toLowerCase().includes('sync') ? 'syncing' : 'running',
+        status,
+      });
+    };
 
-    const payload = await runBrowserAgent({
-      apiKey: apiKey ?? '',
-      theme: params.theme,
-      messages: nextMessages.map((message) => ({ role: message.role, content: message.content })),
-      baseFiles,
-      baseVersion: params.version,
-      onText: (delta) => {
-        streamedTextBuffer += delta;
-        patchGeneration(params.appId, {
-          phase: 'running',
-          streamedText: `${getGeneration(params.appId)?.streamedText ?? ''}${delta}`,
+    let payload: { text: string; artifacts: Record<string, string> };
+    if (isFakeGenerationEnabled()) {
+      payload = await runFakeGeneration({
+        prompt: text,
+        onStatus,
+        onToolCall,
+        onText,
+      });
+    } else {
+      const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+      if (!apiKey && !hasServerKey) {
+        const message = 'Missing Anthropic key';
+        const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
+          appId: params.appId,
+          role: 'assistant',
+          content: `Error: ${message}`,
         });
-      },
-      onToolCall: (target) => {
-        toolCallCount += 1;
-        patchGeneration(params.appId, {
-          phase: 'running',
-          toolCallCount,
-          currentToolCall: `#${toolCallCount} ${target} (updating app files)`,
-          status: `Running tool #${toolCallCount}`,
+
+        setGenerationResult(params.appId, {
+          ok: false,
+          error: message,
+          assistantMessage,
+          completedAt: Date.now(),
         });
-      },
-      onStatus: (status) => {
-        patchGeneration(params.appId, {
-          phase: status.toLowerCase().includes('sync') ? 'syncing' : 'running',
-          status,
-        });
-      },
-    });
+        notifyGenerationComplete({ appName, ok: false, error: message });
+        return;
+      }
+
+      const storedBaseFiles = params.version > 0 ? await localStorageAdapter.listArtifacts(params.appId, params.version) : {};
+      const baseFiles =
+        params.version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(params.files).length > 0
+          ? params.files
+          : storedBaseFiles;
+
+      payload = await runBrowserAgent({
+        apiKey: apiKey ?? '',
+        theme: params.theme,
+        messages: nextMessages.map((message) => ({ role: message.role, content: message.content })),
+        baseFiles,
+        baseVersion: params.version,
+        onText,
+        onToolCall,
+        onStatus,
+      });
+    }
 
     patchGeneration(params.appId, {
       phase: 'syncing',
