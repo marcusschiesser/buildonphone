@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ChatMessage, SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { getAnthropicKey } from '@/lib/security/byok';
+import { getServerConfig } from '@/lib/server-config';
 import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { runBrowserAgent } from '@/lib/agent/browserAgent';
@@ -79,14 +80,12 @@ export function Studio({
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages);
 
-    const apiKey = await getAnthropicKey();
-    if (!apiKey) {
-      setBusy(false);
-      setStatus('Missing Anthropic key');
-      return;
-    }
-
     try {
+      const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+      if (!apiKey && !hasServerKey) {
+        setStatus('Missing Anthropic key');
+        return;
+      }
       const nextVersion = version + 1;
       setStatus('Preparing generation');
       const storedBaseFiles = version > 0 ? await localStorageAdapter.listArtifacts(appId, version) : {};
@@ -94,7 +93,7 @@ export function Studio({
         version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(files).length > 0 ? files : storedBaseFiles;
 
       const payload = await runBrowserAgent({
-        apiKey,
+        apiKey: apiKey ?? '',
         theme: initialApp?.theme ?? '',
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         baseFiles,

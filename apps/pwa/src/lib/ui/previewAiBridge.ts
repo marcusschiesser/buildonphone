@@ -1,6 +1,8 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { jsonSchema, Output, streamText, type ModelMessage } from 'ai';
+import { DEFAULT_MODEL } from '../model';
 import { getAnthropicKey } from '../security/byok';
+import { getServerConfig } from '../server-config';
 import { normalizePreviewAiInput, type PreviewAiInput } from './previewAiBridgeCore';
 
 export {
@@ -20,18 +22,18 @@ export async function executePreviewAiRequest(
   }
 ): Promise<void> {
   const normalized = normalizePreviewAiInput(input);
-  const apiKey = await getAnthropicKey();
-  if (!apiKey) {
+  const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+  if (!apiKey && !hasServerKey) {
     throw new Error('Missing Anthropic API key in host app. Add your BYOK key first.');
   }
 
   const anthropic = createAnthropic({
-    apiKey,
+    apiKey: apiKey ?? '',
     baseURL: '/api/anthropic',
   });
 
   const baseOptions = {
-    model: anthropic('claude-sonnet-4-5-20250929'),
+    model: anthropic(DEFAULT_MODEL),
     system: normalized.system,
     temperature: normalized.temperature,
     maxTokens: normalized.maxTokens,
