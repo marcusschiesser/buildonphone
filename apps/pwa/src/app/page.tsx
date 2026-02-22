@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
+import { cleanupCompletedGenerations, useAnyBusy, useGenerationMap } from '@/lib/generation/generationStore';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 import { InstallButton } from '@/components/install-button';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
+  const generationMap = useGenerationMap();
+  const anyBusy = useAnyBusy();
+  const wasBusyRef = useRef(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
+      cleanupCompletedGenerations();
       const nextApps = await ensureDefaultAppsSeededClient();
       if (active) setApps(nextApps);
     })();
@@ -23,6 +28,27 @@ export default function HomePage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (anyBusy) {
+      wasBusyRef.current = true;
+      return;
+    }
+    if (!wasBusyRef.current) return;
+
+    let cancelled = false;
+    void (async () => {
+      cleanupCompletedGenerations();
+      const nextApps = await localStorageAdapter.listApps();
+      if (cancelled) return;
+      setApps(nextApps);
+      wasBusyRef.current = false;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [anyBusy]);
 
   const renameApp = async (appId: string, nextName: string) => {
     const updated = await localStorageAdapter.updateApp(appId, { name: nextName });
@@ -68,10 +94,16 @@ export default function HomePage() {
           <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with “Create App”.</div>
         ) : (
           apps.map((app) => (
-            <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} />
+            <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} generating={generationMap.get(app.id)?.busy ?? false} />
           ))
         )}
       </section>
+
+      {Array.from(generationMap.entries()).some(([appId, state]) => state.busy && !apps.some((app) => app.id === appId)) ? (
+        <div className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Generation is running in the background. It will appear here when app metadata is synced.
+        </div>
+      ) : null}
     </main>
   );
 }
