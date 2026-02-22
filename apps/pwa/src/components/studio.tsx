@@ -1,14 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { ChatMessage, SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
-import { getAnthropicKey } from '@/lib/security/byok';
-import { getServerConfig } from '@/lib/server-config';
+import {
+  clearGeneration,
+  consumeGenerationResult,
+  getGeneration,
+  useGeneration,
+} from '@/lib/generation/generationStore';
+import { requestNotificationPermission } from '@/lib/generation/notify';
+import { startGeneration } from '@/lib/generation/startGeneration';
 import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
-import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
 import { PreviewModeTabs } from './studio/preview-mode-tabs';
@@ -18,19 +23,6 @@ const STUDIO_PANEL_CLASS = 'h-full min-h-0 min-w-0 flex-col overflow-hidden roun
 const STUDIO_TITLE_CLASS = 'mb-2 text-xs uppercase tracking-[0.2em] text-cyan-100';
 const MOBILE_TAB_CLASS = 'rounded-xl py-2 text-sm';
 const THREAD_SCROLL_CLASS = 'min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-black/25 p-3';
-
-function extractName(prompt: string): string {
-  const lower = prompt.toLowerCase();
-  const patterns = [/(?:make|create|build)\s+(?:a|an|me\s+a)?\s*(.+?)(?:\s+with|\s+that|\s+app|$)/i];
-  for (const p of patterns) {
-    const match = lower.match(p);
-    if (match?.[1]) {
-      const name = match[1].trim().replace(/\s+app$/i, '');
-      return name.charAt(0).toUpperCase() + name.slice(1);
-    }
-  }
-  return prompt.slice(0, 30);
-}
 
 export function Studio({
   appId,
@@ -46,125 +38,105 @@ export function Studio({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('Idle');
-  const [streamedText, setStreamedText] = useState('');
-  const [currentToolCall, setCurrentToolCall] = useState<string | null>(null);
   const [files, setFiles] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [previewMode, setPreviewMode] = useState<'preview' | 'code'>('preview');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
+  const notificationPermissionRequestedRef = useRef(false);
+  const gen = useGeneration(appId);
+  const busy = gen?.busy ?? false;
+  const status = gen?.status ?? 'Idle';
+  const streamedText = gen?.streamedText ?? '';
+  const currentToolCall = gen?.currentToolCall ?? null;
 
   useEffect(() => {
     if (!appId || version < 1) return;
     void localStorageAdapter.listArtifacts(appId, version).then(setFiles);
   }, [appId, version]);
 
-  const sendPrompt = async (rawText: string) => {
-    const text = rawText.trim();
-    if (!text || busy) return;
-    let toolCalls = 0;
-    let streamedTextBuffer = '';
+  useEffect(() => {
+    if (!gen?.result) return;
+    let cancelled = false;
+    const result = gen.result;
 
-    setBusy(true);
-    setStatus('Queuing prompt');
-    setStreamedText('');
-    setCurrentToolCall(null);
-    setInput('');
+    void (async () => {
+      const [history, app] = await Promise.all([
+        localStorageAdapter.getChatHistory(appId),
+        localStorageAdapter.getApp(appId),
+      ]);
+      if (cancelled) return;
 
-    const userMsg = await localStorageAdapter.appendMessage(appId, {
+      setMessages(history);
+      setAppCreated(Boolean(app));
+
+      if (result.ok) {
+        const resolvedVersion = result.newVersion ?? app?.currentVersion ?? 0;
+        setVersion(resolvedVersion);
+        const nextFiles = resolvedVersion > 0 ? await localStorageAdapter.listArtifacts(appId, resolvedVersion) : {};
+        if (cancelled) return;
+        setFiles(nextFiles);
+        setActiveTab('preview');
+      }
+
+      consumeGenerationResult(appId);
+      const stateAfterConsume = getGeneration(appId);
+      if (stateAfterConsume && !stateAfterConsume.busy && !stateAfterConsume.result) {
+        clearGeneration(appId);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appId, gen?.result]);
+
+  const send = () => {
+    const text = input.trim();
+    if (!text || busy || gen?.result) return;
+    const tempUserMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
       appId,
       role: 'user',
       content: text,
-    });
-    const nextMessages = [...messages, userMsg];
-    setMessages(nextMessages);
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempUserMessage]);
+    setInput('');
 
-    try {
-      const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-      if (!apiKey && !hasServerKey) {
-        setStatus('Missing Anthropic key');
-        return;
-      }
-      const nextVersion = version + 1;
-      setStatus('Preparing generation');
-      const storedBaseFiles = version > 0 ? await localStorageAdapter.listArtifacts(appId, version) : {};
-      const baseFiles =
-        version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(files).length > 0 ? files : storedBaseFiles;
-
-      const payload = await runBrowserAgent({
-        apiKey: apiKey ?? '',
-        theme: initialApp?.theme ?? '',
-        messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
-        baseFiles,
-        baseVersion: version,
-        onText: (delta) => {
-          streamedTextBuffer += delta;
-          setStreamedText((prev) => prev + delta);
-        },
-        onToolCall: (target) => {
-          toolCalls += 1;
-          setCurrentToolCall(`#${toolCalls} ${target} (updating app files)`);
-          setStatus(`Running tool #${toolCalls}`);
-        },
-        onStatus: setStatus,
-      });
-
-      for (const [filename, content] of Object.entries(payload.artifacts)) {
-        await localStorageAdapter.writeArtifact(appId, nextVersion, filename, content);
-      }
-
-      if (!appCreated) {
-        await localStorageAdapter.createApp(
-          {
-            name: extractName(nextMessages[0]?.content || text),
-            description: nextMessages[0]?.content || '',
-            icon: '',
-            theme: '',
-            currentVersion: nextVersion,
-          },
-          appId
-        );
-        setAppCreated(true);
-      } else {
-        await localStorageAdapter.updateApp(appId, { currentVersion: nextVersion });
-      }
-
-      const aiMsg = await localStorageAdapter.appendMessage(appId, {
-        appId,
-        role: 'assistant',
-        content: payload.text || streamedTextBuffer || 'Generated files.',
-        version: nextVersion,
-      });
-
-      setMessages((prev) => [...prev, aiMsg]);
-      setVersion(nextVersion);
-      setFiles(payload.artifacts);
-      setActiveTab('preview');
-      setStatus('Done');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`Error: ${message}`);
-      const aiMsg = await localStorageAdapter.appendMessage(appId, {
-        appId,
-        role: 'assistant',
-        content: `Error: ${message}`,
-      });
-      setMessages((prev) => [...prev, aiMsg]);
-    } finally {
-      setBusy(false);
-      setStreamedText('');
-      setCurrentToolCall(null);
+    if (!notificationPermissionRequestedRef.current) {
+      notificationPermissionRequestedRef.current = true;
+      void requestNotificationPermission();
     }
-  };
 
-  const send = () => {
-    void sendPrompt(input);
+    void startGeneration({
+      appId,
+      text,
+      messages,
+      version,
+      files,
+      theme: initialApp?.theme ?? '',
+      appCreated,
+      appNameHint: initialApp?.name,
+    });
   };
 
   const onPreviewFix = (payload: PreviewFixPayload) => {
-    if (busy) return;
-    void sendPrompt(buildFixPrompt(payload));
+    if (busy || gen?.result) return;
+    const fixPrompt = buildFixPrompt(payload);
+    if (!notificationPermissionRequestedRef.current) {
+      notificationPermissionRequestedRef.current = true;
+      void requestNotificationPermission();
+    }
+    void startGeneration({
+      appId,
+      text: fixPrompt,
+      messages,
+      version,
+      files,
+      theme: initialApp?.theme ?? '',
+      appCreated,
+      appNameHint: initialApp?.name,
+    });
   };
 
   const versionLabel = useMemo(() => (version > 0 ? `v${version}` : 'No build yet'), [version]);
@@ -251,7 +223,7 @@ export function Studio({
             />
             <button
               onClick={send}
-              disabled={busy || !input.trim()}
+              disabled={busy || Boolean(gen?.result) || !input.trim()}
               className="rounded-2xl bg-accent px-4 py-3 font-semibold text-black disabled:opacity-40"
             >
               {busy ? '...' : 'Send'}

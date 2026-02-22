@@ -8,9 +8,10 @@ interface AppCardProps {
   app: SuApp;
   onRename: (appId: string, nextName: string) => Promise<void>;
   onDelete: (appId: string) => Promise<void>;
+  generating?: boolean;
 }
 
-export function AppCard({ app, onRename, onDelete }: AppCardProps) {
+export function AppCard({ app, onRename, onDelete, generating = false }: AppCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(app.name);
   const [busy, setBusy] = useState(false);
@@ -69,15 +70,22 @@ export function AppCard({ app, onRename, onDelete }: AppCardProps) {
         <>
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
-            <span
-              className={
-                app.isDefault
-                  ? 'rounded-full border border-cyan-300/50 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200'
-                  : 'rounded-full border border-zinc-500/60 bg-zinc-800/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300'
-              }
-            >
-              {app.isDefault ? 'Default' : 'My App'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  app.isDefault
+                    ? 'rounded-full border border-cyan-300/50 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200'
+                    : 'rounded-full border border-zinc-500/60 bg-zinc-800/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300'
+                }
+              >
+                {app.isDefault ? 'Default' : 'My App'}
+              </span>
+              {generating ? (
+                <span className="animate-pulse rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                  Generating...
+                </span>
+              ) : null}
+            </div>
           </div>
           <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{app.description || 'No description'}</p>
         </>
@@ -112,7 +120,8 @@ export function AppCard({ app, onRename, onDelete }: AppCardProps) {
           onClick={async () => {
             await onDelete(app.id);
           }}
-          className="rounded-xl border border-red-400/50 px-3 py-2 text-sm text-red-200"
+          className="rounded-xl border border-red-400/50 px-3 py-2 text-sm text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={generating}
         >
           Delete
         </button>

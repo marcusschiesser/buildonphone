@@ -8,18 +8,16 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function usePwaInstall() {
+  const isStandaloneOnLoad =
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true));
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(isStandaloneOnLoad);
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true);
-
-    if (isStandalone) {
-      setIsInstalled(true);
-      return;
-    }
+    if (isInstalled) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -38,7 +36,7 @@ export function usePwaInstall() {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', onAppInstalled);
     };
-  }, []);
+  }, [isInstalled]);
 
   const install = async () => {
     if (!deferredPrompt) return;
