@@ -80,14 +80,12 @@ export function Studio({
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages);
 
-    const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-    if (!apiKey && !hasServerKey) {
-      setBusy(false);
-      setStatus('Missing Anthropic key');
-      return;
-    }
-
     try {
+      const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+      if (!apiKey && !hasServerKey) {
+        setStatus('Missing Anthropic key');
+        return;
+      }
       const nextVersion = version + 1;
       setStatus('Preparing generation');
       const storedBaseFiles = version > 0 ? await localStorageAdapter.listArtifacts(appId, version) : {};
