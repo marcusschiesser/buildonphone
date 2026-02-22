@@ -218,7 +218,26 @@ export function Studio({
         <section className={`${activeTab === 'chat' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} bg-panel/75 lg:flex`}>
           <div className={STUDIO_TITLE_CLASS}>Prompt Thread</div>
           <div className={THREAD_SCROLL_CLASS}>
-            {threadMessages.length === 0 ? <p className="text-sm text-zinc-400">Describe the app you want to build.</p> : null}
+            {threadMessages.length === 0 ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-zinc-400">Describe the app you want to build, or try one of these examples:</p>
+                <div className="flex flex-col gap-2">
+                  {[
+                    'Build me a habit tracker with a calendar heatmap and streak logic',
+                    'Create a Pomodoro timer with session history and stats',
+                    'Make a markdown notes app with live preview and local storage',
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => setInput(example)}
+                      className="rounded-xl border border-zinc-700 bg-black/20 px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:border-cyan-300/50 hover:text-zinc-100"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {threadMessages.map((m) => (
               <StudioMessage key={m.id} message={m} />
             ))}
