@@ -7,6 +7,11 @@ const DEFAULT_TTL_SECONDS = Number(process.env.GENERATION_JOB_TTL_SECONDS || '86
 type PartialProgress = Partial<GenerationJobRecord['progress']>;
 
 let redisClient: Redis | null = null;
+const memoryStore = new Map<string, GenerationJobRecord>();
+
+function allowInMemoryFallback(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
+}
 
 function resolveRedisEnv(): { url: string; token: string } {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
@@ -33,12 +38,31 @@ function jobKey(jobId: string): string {
 }
 
 async function get(jobId: string): Promise<GenerationJobRecord | null> {
-  const redis = getRedisClient();
+  let redis: Redis | null = null;
+  try {
+    redis = getRedisClient();
+  } catch {
+    if (!allowInMemoryFallback()) throw new Error(
+      'Missing Redis configuration. Set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN.'
+    );
+  }
+  if (!redis) return memoryStore.get(jobId) ?? null;
   return (await redis.get<GenerationJobRecord>(jobKey(jobId))) ?? null;
 }
 
 async function set(record: GenerationJobRecord): Promise<void> {
-  const redis = getRedisClient();
+  let redis: Redis | null = null;
+  try {
+    redis = getRedisClient();
+  } catch {
+    if (!allowInMemoryFallback()) throw new Error(
+      'Missing Redis configuration. Set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN.'
+    );
+  }
+  if (!redis) {
+    memoryStore.set(record.id, record);
+    return;
+  }
   await redis.set(jobKey(record.id), record, { ex: DEFAULT_TTL_SECONDS });
 }
 
