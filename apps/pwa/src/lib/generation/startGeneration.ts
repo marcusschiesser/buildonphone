@@ -1,13 +1,13 @@
 'use client';
 
 import type { ChatMessage } from '@/types';
-import { runBrowserAgent } from '@/lib/agent/browserAgent';
 import { getAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
 import { localStorageAdapter } from '@/lib/storage/db';
-import { isFakeGenerationEnabled, runFakeGeneration } from './fakeGeneration';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
+import { pollGenerationJob } from './pollJob';
+import type { GenerationJobRequest } from './serverTypes';
 
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
@@ -40,8 +40,6 @@ export async function startGeneration(params: {
 
   startGenerationState(params.appId);
 
-  let toolCallCount = 0;
-  let streamedTextBuffer = '';
   let appName = params.appNameHint?.trim() || 'My App';
 
   try {
@@ -77,84 +75,107 @@ export async function startGeneration(params: {
     patchGeneration(params.appId, {
       phase: 'preparing',
       status: 'Preparing generation',
+      streamedText: '',
+      toolCallCount: 0,
+      currentToolCall: null,
     });
 
-    const nextVersion = params.version + 1;
-    const onText = (delta: string) => {
-      streamedTextBuffer += delta;
-      patchGeneration(params.appId, {
-        phase: 'running',
-        streamedText: `${getGeneration(params.appId)?.streamedText ?? ''}${delta}`,
+    const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+    if (!apiKey && !hasServerKey) {
+      const message = 'Missing Anthropic key';
+      const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
+        appId: params.appId,
+        role: 'assistant',
+        content: `Error: ${message}`,
       });
-    };
-    const onToolCall = (target: string) => {
-      toolCallCount += 1;
-      patchGeneration(params.appId, {
-        phase: 'running',
-        toolCallCount,
-        currentToolCall: `#${toolCallCount} ${target} (updating app files)`,
-        status: `Running tool #${toolCallCount}`,
-      });
-    };
-    const onStatus = (status: string) => {
-      patchGeneration(params.appId, {
-        phase: status.toLowerCase().includes('sync') ? 'syncing' : 'running',
-        status,
-      });
-    };
 
-    let payload: { text: string; artifacts: Record<string, string> };
-    if (isFakeGenerationEnabled()) {
-      payload = await runFakeGeneration({
-        prompt: text,
-        onStatus,
-        onToolCall,
-        onText,
+      setGenerationResult(params.appId, {
+        ok: false,
+        error: message,
+        assistantMessage,
+        completedAt: Date.now(),
       });
-    } else {
-      const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-      if (!apiKey && !hasServerKey) {
-        const message = 'Missing Anthropic key';
-        const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
-          appId: params.appId,
-          role: 'assistant',
-          content: `Error: ${message}`,
-        });
-
-        setGenerationResult(params.appId, {
-          ok: false,
-          error: message,
-          assistantMessage,
-          completedAt: Date.now(),
-        });
-        notifyGenerationComplete({ appName, ok: false, error: message });
-        return;
-      }
-
-      const storedBaseFiles = params.version > 0 ? await localStorageAdapter.listArtifacts(params.appId, params.version) : {};
-      const baseFiles =
-        params.version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(params.files).length > 0
-          ? params.files
-          : storedBaseFiles;
-
-      payload = await runBrowserAgent({
-        apiKey: apiKey ?? '',
-        theme: params.theme,
-        messages: nextMessages.map((message) => ({ role: message.role, content: message.content })),
-        baseFiles,
-        baseVersion: params.version,
-        onText,
-        onToolCall,
-        onStatus,
-      });
+      notifyGenerationComplete({ appName, ok: false, error: message });
+      return;
     }
 
-    patchGeneration(params.appId, {
-      phase: 'syncing',
-      status: 'Syncing artifacts',
+    const nextVersion = params.version + 1;
+    const storedBaseFiles = params.version > 0 ? await localStorageAdapter.listArtifacts(params.appId, params.version) : {};
+    const baseFiles =
+      params.version > 0 && Object.keys(storedBaseFiles).length === 0 && Object.keys(params.files).length > 0
+        ? params.files
+        : storedBaseFiles;
+
+    const requestPayload: GenerationJobRequest = {
+      appId: params.appId,
+      text,
+      messages: nextMessages.map((message) => ({ role: message.role, content: message.content })),
+      version: params.version,
+      baseFiles,
+      theme: params.theme,
+      appNameHint: appName,
+    };
+
+    const createRes = await fetch('/api/generation/jobs', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(apiKey ? { 'x-api-key': apiKey } : {}),
+      },
+      body: JSON.stringify(requestPayload),
     });
 
-    for (const [filename, content] of Object.entries(payload.artifacts)) {
+    if (!createRes.ok) {
+      const bodyText = await createRes.text();
+      throw new Error(`Failed to create generation job: ${bodyText || createRes.status}`);
+    }
+
+    const created = (await createRes.json()) as { jobId: string };
+    patchGeneration(params.appId, {
+      jobId: created.jobId,
+      status: 'Queued prompt',
+      phase: 'preparing',
+    });
+
+    const terminalJob = await pollGenerationJob(created.jobId, {
+      onProgress: (job) => {
+        patchGeneration(params.appId, {
+          jobId: job.id,
+          phase:
+            job.progress.phase === 'queued'
+              ? 'preparing'
+              : job.progress.phase === 'error'
+                ? 'error'
+                : job.progress.phase,
+          status: job.progress.statusText,
+          streamedText: job.progress.streamedText,
+          toolCallCount: job.progress.toolCallCount,
+          currentToolCall: job.progress.currentToolCall,
+        });
+      },
+    });
+
+    if (terminalJob.status !== 'succeeded' || !terminalJob.result?.ok || !terminalJob.result.artifacts) {
+      const message = terminalJob.result?.error ?? 'Generation failed';
+      const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
+        appId: params.appId,
+        role: 'assistant',
+        content: `Error: ${message}`,
+      });
+
+      setGenerationResult(params.appId, {
+        ok: false,
+        error: message,
+        assistantMessage,
+        jobId: created.jobId,
+        completedAt: Date.now(),
+      });
+      notifyGenerationComplete({ appName, ok: false, error: message });
+      return;
+    }
+
+    const artifacts = terminalJob.result.artifacts;
+    for (const [filename, content] of Object.entries(artifacts)) {
       await localStorageAdapter.writeArtifact(params.appId, nextVersion, filename, content);
     }
 
@@ -166,15 +187,16 @@ export async function startGeneration(params: {
     const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
       appId: params.appId,
       role: 'assistant',
-      content: payload.text || streamedTextBuffer || 'Generated files.',
+      content: terminalJob.result.text || 'Generated app.jsx.',
       version: nextVersion,
     });
 
     setGenerationResult(params.appId, {
       ok: true,
       newVersion: nextVersion,
-      artifacts: payload.artifacts,
+      artifacts,
       assistantMessage,
+      jobId: created.jobId,
       completedAt: Date.now(),
     });
 
