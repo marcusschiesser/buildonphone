@@ -1,5 +1,20 @@
 import type { GenerationJobRecord } from './serverTypes';
 
+// If the job's progress.updatedAt hasn't advanced for this long, the
+// server-side worker has very likely crashed or been killed by the platform
+// before it could mark the job as failed.  Treat it as unrecoverable.
+const STALE_JOB_TIMEOUT_MS = 90_000;
+
+export class StaleJobError extends Error {
+  constructor() {
+    super(
+      'Generation appears stuck – the server stopped reporting progress. ' +
+        'Please try again.'
+    );
+    this.name = 'StaleJobError';
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -14,6 +29,8 @@ export async function pollGenerationJob(
   }
 ): Promise<GenerationJobRecord> {
   let attempt = 0;
+  let lastSeenUpdatedAt: number | null = null;
+  let staleWindowStart: number | null = null;
 
   while (true) {
     if (handlers.signal?.aborted) {
@@ -35,6 +52,21 @@ export async function pollGenerationJob(
     if (job.status === 'succeeded' || job.status === 'failed' || job.status === 'expired') {
       return job;
     }
+
+    // Stale detection: track whether progress.updatedAt is advancing.
+    // During active generation the server updates it on every text delta,
+    // tool-call, and status change, so 90 s of silence means the worker died.
+    if (lastSeenUpdatedAt !== null && job.progress.updatedAt === lastSeenUpdatedAt) {
+      if (staleWindowStart === null) {
+        staleWindowStart = Date.now();
+      } else if (Date.now() - staleWindowStart > STALE_JOB_TIMEOUT_MS) {
+        throw new StaleJobError();
+      }
+    } else {
+      // Progress moved – reset the stale window.
+      staleWindowStart = null;
+    }
+    lastSeenUpdatedAt = job.progress.updatedAt;
 
     attempt += 1;
     const waitMs = Math.min(2000, 500 + attempt * 250);
