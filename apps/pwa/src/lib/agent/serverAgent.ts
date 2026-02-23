@@ -23,25 +23,11 @@ export interface ServerAgentResult {
   artifacts: Record<string, string>;
 }
 
-interface SandboxCredentials {
-  token: string;
-  projectId: string;
-  teamId: string;
-}
-
-function getSandboxCredentials(): SandboxCredentials {
-  const token = process.env.VERCEL_SANDBOX_TOKEN ?? process.env.VERCEL_OIDC_TOKEN;
-  const projectId = process.env.VERCEL_SANDBOX_PROJECT_ID ?? process.env.VERCEL_PROJECT_ID;
-  const teamId = process.env.VERCEL_SANDBOX_TEAM_ID ?? process.env.VERCEL_TEAM_ID;
-
-  if (!token || !projectId || !teamId) {
-    throw new Error('Missing Vercel Sandbox credentials. Set VERCEL_SANDBOX_TOKEN, VERCEL_SANDBOX_PROJECT_ID and VERCEL_SANDBOX_TEAM_ID.');
-  }
-
-  return { token, projectId, teamId };
-}
-
-async function hydrateRuntimeWithBaseFilesOrThrow(runtime: ReturnType<typeof createVercelSandboxRuntime>, baseFiles: Record<string, string> | undefined, baseVersion: number | undefined) {
+async function hydrateRuntimeWithBaseFilesOrThrow(
+  runtime: ReturnType<typeof createVercelSandboxRuntime>,
+  baseFiles: Record<string, string> | undefined,
+  baseVersion: number | undefined
+) {
   const isFollowUp = (baseVersion ?? 0) > 0;
 
   if (isFollowUp && !baseFiles?.['app.jsx']?.trim()) {
@@ -73,14 +59,9 @@ async function readGeneratedAppJsx(runtime: ReturnType<typeof createVercelSandbo
 }
 
 export async function runServerAgent(input: ServerAgentInput): Promise<ServerAgentResult> {
-  const credentials = getSandboxCredentials();
-
   const sandbox = await Sandbox.create({
     runtime: 'node22',
     timeout: Number(process.env.GENERATION_SANDBOX_TIMEOUT_MS || '300000'),
-    token: credentials.token,
-    projectId: credentials.projectId,
-    teamId: credentials.teamId,
   });
 
   try {
