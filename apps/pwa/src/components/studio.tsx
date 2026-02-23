@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ChatMessage, SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
@@ -44,7 +44,6 @@ export function Studio({
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [previewMode, setPreviewMode] = useState<'preview' | 'code'>('preview');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
-  const notificationPermissionRequestedRef = useRef(false);
   const gen = useGeneration(appId);
   const busy = gen?.busy ?? false;
   const status = gen?.status ?? 'Idle';
@@ -55,6 +54,16 @@ export function Studio({
     if (!appId || version < 1) return;
     void localStorageAdapter.listArtifacts(appId, version).then(setFiles);
   }, [appId, version]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && busy) {
+        void requestNotificationPermission();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [busy]);
 
   useEffect(() => {
     if (!gen?.result) return;
@@ -105,11 +114,6 @@ export function Studio({
     setMessages((prev) => [...prev, tempUserMessage]);
     setInput('');
 
-    if (!notificationPermissionRequestedRef.current) {
-      notificationPermissionRequestedRef.current = true;
-      void requestNotificationPermission();
-    }
-
     void startGeneration({
       appId,
       text,
@@ -125,10 +129,6 @@ export function Studio({
   const onPreviewFix = (payload: PreviewFixPayload) => {
     if (busy || gen?.result) return;
     const fixPrompt = buildFixPrompt(payload);
-    if (!notificationPermissionRequestedRef.current) {
-      notificationPermissionRequestedRef.current = true;
-      void requestNotificationPermission();
-    }
     void startGeneration({
       appId,
       text: fixPrompt,
