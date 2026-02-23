@@ -110,7 +110,7 @@ export default function HomePage() {
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {apps.length === 0 ? (
-          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with "Create App".</div>
+          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with &quot;Create App&quot;.</div>
         ) : (
           apps.map((app) => (
             <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} generating={generationMap.get(app.id)?.busy ?? false} />

@@ -7,23 +7,21 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+function isRunningStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true)
+  );
+}
+
 export function usePwaInstall() {
-  // Always start as false to match the SSR state and avoid hydration mismatches.
-  // The actual standalone check is deferred to a useEffect (client-only).
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  // Lazy initializer runs only on the client, so SSR always returns false (no hydration mismatch)
+  // and we avoid calling setState synchronously inside an effect.
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => isRunningStandalone());
 
   useEffect(() => {
-    // Check if already running as an installed PWA
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true);
-
-    if (isStandalone) {
-      setIsInstalled(true);
-      return;
-    }
-
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
