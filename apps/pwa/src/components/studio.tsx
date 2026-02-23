@@ -11,6 +11,7 @@ import {
   useGeneration,
 } from '@/lib/generation/generationStore';
 import { requestNotificationPermission } from '@/lib/generation/notify';
+import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
 import { startGeneration } from '@/lib/generation/startGeneration';
 import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
@@ -55,6 +56,24 @@ export function Studio({
     if (!appId || version < 1) return;
     void localStorageAdapter.listArtifacts(appId, version).then(setFiles);
   }, [appId, version]);
+
+  // Re-attach to a server-side job when the component mounts (e.g. after a
+  // page reload or bfcache restore) and whenever the page becomes visible
+  // again after the user switched away from the PWA.
+  useEffect(() => {
+    void resumeGenerationIfNeeded(appId);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void resumeGenerationIfNeeded(appId);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [appId]);
 
   useEffect(() => {
     if (!gen?.result) return;
