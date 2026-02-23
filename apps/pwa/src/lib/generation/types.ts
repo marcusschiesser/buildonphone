@@ -8,6 +8,7 @@ export interface GenerationResult {
   newVersion?: number;
   artifacts?: Record<string, string>;
   assistantMessage?: ChatMessage;
+  jobId?: string;
   completedAt: number;
 }
 
@@ -19,6 +20,7 @@ export interface GenerationState {
   streamedText: string;
   currentToolCall: string | null;
   toolCallCount: number;
+  jobId?: string;
   result?: GenerationResult;
   startedAt: number;
   updatedAt: number;
