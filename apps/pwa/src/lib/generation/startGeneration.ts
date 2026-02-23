@@ -6,8 +6,9 @@ import { getServerConfig } from '@/lib/server-config';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
+import { clearPersistedJob, persistActiveJob } from './persistJob';
 import { pollGenerationJob } from './pollJob';
-import type { GenerationJobRequest } from './serverTypes';
+import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
@@ -20,6 +21,66 @@ function extractName(prompt: string): string {
     }
   }
   return prompt.slice(0, 30) || 'My App';
+}
+
+/**
+ * Handles a terminal generation job: saves artifacts, updates the app record,
+ * appends the assistant message, and notifies the UI. Called both from the
+ * original polling path and from the resume-after-return path.
+ */
+export async function applyCompletedJob(
+  appId: string,
+  terminalJob: GenerationJobRecord,
+  nextVersion: number,
+  appName: string
+): Promise<void> {
+  if (terminalJob.status !== 'succeeded' || !terminalJob.result?.ok || !terminalJob.result.artifacts) {
+    const message = terminalJob.result?.error ?? 'Generation failed';
+    const assistantMessage = await localStorageAdapter.appendMessage(appId, {
+      appId,
+      role: 'assistant',
+      content: `Error: ${message}`,
+    });
+
+    setGenerationResult(appId, {
+      ok: false,
+      error: message,
+      assistantMessage,
+      jobId: terminalJob.id,
+      completedAt: Date.now(),
+    });
+    notifyGenerationComplete({ appName, ok: false, error: message });
+    return;
+  }
+
+  const artifacts = terminalJob.result.artifacts;
+  for (const [filename, content] of Object.entries(artifacts)) {
+    await localStorageAdapter.writeArtifact(appId, nextVersion, filename, content);
+  }
+
+  const existingApp = await localStorageAdapter.getApp(appId);
+  if (existingApp) {
+    const updated = await localStorageAdapter.updateApp(appId, { currentVersion: nextVersion });
+    appName = updated.name || appName;
+  }
+
+  const assistantMessage = await localStorageAdapter.appendMessage(appId, {
+    appId,
+    role: 'assistant',
+    content: terminalJob.result.text || 'Generated app.jsx.',
+    version: nextVersion,
+  });
+
+  setGenerationResult(appId, {
+    ok: true,
+    newVersion: nextVersion,
+    artifacts,
+    assistantMessage,
+    jobId: terminalJob.id,
+    completedAt: Date.now(),
+  });
+
+  notifyGenerationComplete({ appName, ok: true });
 }
 
 export async function startGeneration(params: {
@@ -138,6 +199,9 @@ export async function startGeneration(params: {
       phase: 'preparing',
     });
 
+    // Persist so the job can be resumed if the user leaves and returns.
+    persistActiveJob({ jobId: created.jobId, appId: params.appId, nextVersion, appName });
+
     const terminalJob = await pollGenerationJob(created.jobId, {
       onProgress: (job) => {
         patchGeneration(params.appId, {
@@ -156,53 +220,10 @@ export async function startGeneration(params: {
       },
     });
 
-    if (terminalJob.status !== 'succeeded' || !terminalJob.result?.ok || !terminalJob.result.artifacts) {
-      const message = terminalJob.result?.error ?? 'Generation failed';
-      const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
-        appId: params.appId,
-        role: 'assistant',
-        content: `Error: ${message}`,
-      });
-
-      setGenerationResult(params.appId, {
-        ok: false,
-        error: message,
-        assistantMessage,
-        jobId: created.jobId,
-        completedAt: Date.now(),
-      });
-      notifyGenerationComplete({ appName, ok: false, error: message });
-      return;
-    }
-
-    const artifacts = terminalJob.result.artifacts;
-    for (const [filename, content] of Object.entries(artifacts)) {
-      await localStorageAdapter.writeArtifact(params.appId, nextVersion, filename, content);
-    }
-
-    if (appExists) {
-      const updated = await localStorageAdapter.updateApp(params.appId, { currentVersion: nextVersion });
-      appName = updated.name || appName;
-    }
-
-    const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
-      appId: params.appId,
-      role: 'assistant',
-      content: terminalJob.result.text || 'Generated app.jsx.',
-      version: nextVersion,
-    });
-
-    setGenerationResult(params.appId, {
-      ok: true,
-      newVersion: nextVersion,
-      artifacts,
-      assistantMessage,
-      jobId: created.jobId,
-      completedAt: Date.now(),
-    });
-
-    notifyGenerationComplete({ appName, ok: true });
+    clearPersistedJob(params.appId);
+    await applyCompletedJob(params.appId, terminalJob, nextVersion, appName);
   } catch (error) {
+    clearPersistedJob(params.appId);
     const message = error instanceof Error ? error.message : String(error);
     patchGeneration(params.appId, {
       phase: 'error',
