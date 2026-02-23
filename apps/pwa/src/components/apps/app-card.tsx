@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { SuApp } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface AppCardProps {
   app: SuApp;
@@ -53,9 +56,8 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
           <label className="text-xs uppercase tracking-[0.2em] text-zinc-400" htmlFor={`rename-${app.id}`}>
             App name
           </label>
-          <input
+          <Input
             id={`rename-${app.id}`}
-            className="w-full rounded-xl border border-zinc-600 bg-zinc-950 px-3 py-2 text-cyan-100 outline-none focus:border-cyan-300"
             maxLength={80}
             value={nameDraft}
             onChange={(event) => setNameDraft(event.target.value)}
@@ -71,20 +73,10 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
             <div className="flex items-center gap-2">
-              <span
-                className={
-                  app.isDefault
-                    ? 'rounded-full border border-cyan-300/50 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200'
-                    : 'rounded-full border border-zinc-500/60 bg-zinc-800/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300'
-                }
-              >
+              <Badge variant={app.isDefault ? 'default' : 'secondary'}>
                 {app.isDefault ? 'Default' : 'My App'}
-              </span>
-              {generating ? (
-                <span className="animate-pulse rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-                  Generating...
-                </span>
-              ) : null}
+              </Badge>
+              {generating ? <Badge variant="warning">Generating...</Badge> : null}
             </div>
           </div>
           <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{app.description || 'No description'}</p>
@@ -92,39 +84,36 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200" href={`/run/${app.id}`}>
+        <Link className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200 hover:border-zinc-400" href={`/run/${app.id}`}>
           Run
         </Link>
-        <Link className="rounded-xl bg-accent-2 px-3 py-2 text-sm font-semibold text-black" href={`/edit/${app.id}`}>
+        <Link className="rounded-xl bg-accent-2 px-3 py-2 text-sm font-semibold text-black hover:opacity-90" href={`/edit/${app.id}`}>
           Edit
         </Link>
         {isRenaming ? (
           <>
-            <button
-              className="rounded-xl border border-cyan-400/50 px-3 py-2 text-sm text-cyan-100 disabled:opacity-60"
-              disabled={busy}
-              onClick={() => void saveRename()}
-            >
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => void saveRename()}>
               Save
-            </button>
-            <button className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200" disabled={busy} onClick={cancelRename}>
+            </Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={cancelRename}>
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
-          <button className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200" onClick={() => setIsRenaming(true)}>
+          <Button variant="ghost" size="sm" onClick={() => setIsRenaming(true)}>
             Rename
-          </button>
+          </Button>
         )}
-        <button
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={generating}
           onClick={async () => {
             await onDelete(app.id);
           }}
-          className="rounded-xl border border-red-400/50 px-3 py-2 text-sm text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={generating}
         >
           Delete
-        </button>
+        </Button>
       </div>
     </article>
   );

@@ -3,6 +3,8 @@
 import { useEffect, useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getServerConfig } from '@/lib/server-config';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 function LoginForm() {
   const router = useRouter();
@@ -47,12 +49,11 @@ function LoginForm() {
           <label className="mb-1 block text-xs text-zinc-400" htmlFor="password">
             Password
           </label>
-          <input
+          <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-white outline-none focus:border-cyan-400"
             autoFocus
             required
           />
@@ -60,13 +61,9 @@ function LoginForm() {
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-2xl bg-accent px-4 py-2 font-semibold text-black disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading}>
           {loading ? 'Verifying…' : 'Sign In'}
-        </button>
+        </Button>
       </form>
     </div>
   );
