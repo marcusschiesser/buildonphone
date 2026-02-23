@@ -32,3 +32,25 @@ export function getPersistedJob(appId: string): PersistedJob | null {
     return null;
   }
 }
+
+export function getAllPersistedJobs(): PersistedJob[] {
+  try {
+    const jobs: PersistedJob[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(ACTIVE_JOB_KEY_PREFIX)) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            jobs.push(JSON.parse(raw) as PersistedJob);
+          } catch {
+            // skip malformed entries
+          }
+        }
+      }
+    }
+    return jobs;
+  } catch {
+    return [];
+  }
+}
