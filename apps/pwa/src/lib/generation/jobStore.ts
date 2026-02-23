@@ -6,16 +6,25 @@ const DEFAULT_TTL_SECONDS = Number(process.env.GENERATION_JOB_TTL_SECONDS || '86
 
 type PartialProgress = Partial<GenerationJobRecord['progress']>;
 
-type InMemoryStore = Map<string, GenerationJobRecord>;
-
-const memoryStore: InMemoryStore = new Map();
 let redisClient: Redis | null = null;
 
-function getRedisClient(): Redis | null {
+function resolveRedisEnv(): { url: string; token: string } {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+  if (!url || !token) {
+    throw new Error(
+      'Missing Redis configuration. Set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN.'
+    );
+  }
+
+  return { url, token };
+}
+
+function getRedisClient(): Redis {
   if (redisClient) return redisClient;
-  const hasEnv = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-  if (!hasEnv) return null;
-  redisClient = Redis.fromEnv();
+  const { url, token } = resolveRedisEnv();
+  redisClient = new Redis({ url, token });
   return redisClient;
 }
 
@@ -25,16 +34,11 @@ function jobKey(jobId: string): string {
 
 async function get(jobId: string): Promise<GenerationJobRecord | null> {
   const redis = getRedisClient();
-  if (!redis) return memoryStore.get(jobId) ?? null;
   return (await redis.get<GenerationJobRecord>(jobKey(jobId))) ?? null;
 }
 
 async function set(record: GenerationJobRecord): Promise<void> {
   const redis = getRedisClient();
-  if (!redis) {
-    memoryStore.set(record.id, record);
-    return;
-  }
   await redis.set(jobKey(record.id), record, { ex: DEFAULT_TTL_SECONDS });
 }
 
@@ -111,22 +115,6 @@ export async function failJob(jobId: string, error: string): Promise<void> {
 
 export async function expireJob(jobId: string): Promise<void> {
   const redis = getRedisClient();
-  if (!redis) {
-    const existing = memoryStore.get(jobId);
-    if (!existing) return;
-    memoryStore.set(jobId, {
-      ...existing,
-      status: 'expired',
-      completedAt: Date.now(),
-      progress: {
-        ...existing.progress,
-        phase: 'error',
-        statusText: 'Expired',
-        updatedAt: Date.now(),
-      },
-    });
-    return;
-  }
   const existing = await redis.get<GenerationJobRecord>(jobKey(jobId));
   if (!existing) return;
   await redis.set(
