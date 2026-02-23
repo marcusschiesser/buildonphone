@@ -226,6 +226,7 @@ export async function startGeneration(params: {
     });
 
     clearPersistedJob(params.appId);
+    jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
     await applyCompletedJob(params.appId, terminalJob, nextVersion, appName);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
