@@ -71,8 +71,8 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
-            <div className="flex items-center gap-2">
+            <h2 className="min-w-0 truncate text-lg font-semibold text-cyan-100">{app.name}</h2>
+            <div className="flex shrink-0 items-center gap-2">
               <Badge variant={app.isDefault ? 'default' : 'secondary'}>
                 {app.isDefault ? 'Default' : 'My App'}
               </Badge>
