@@ -47,7 +47,11 @@ export async function POST(req: NextRequest) {
   await createJob(job);
 
   const byok = req.headers.get('x-api-key')?.trim();
-  after(() => runGenerationJob(jobId, byok));
+  if (process.env.NODE_ENV === 'production') {
+    after(() => runGenerationJob(jobId, byok));
+  } else {
+    void runGenerationJob(jobId, byok);
+  }
 
   return NextResponse.json(
     {
