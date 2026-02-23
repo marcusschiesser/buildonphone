@@ -1,5 +1,3 @@
-'use client';
-
 const CI_MARKER = 'CI_FAKE_APP_READY';
 
 function sleep(ms: number): Promise<void> {

@@ -1,6 +1,3 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { jsonSchema, Output, streamText, type ModelMessage } from 'ai';
-import { DEFAULT_MODEL } from '../model';
 import { getAnthropicKey } from '../security/byok';
 import { getServerConfig } from '../server-config';
 import { normalizePreviewAiInput, type PreviewAiInput } from './previewAiBridgeCore';
@@ -13,6 +10,60 @@ export {
   PREVIEW_AI_ERROR_EVENT_TYPE,
   parsePreviewAiRequestEvent,
 } from './previewAiBridgeCore';
+
+type PreviewAiSseEvent = {
+  event: string;
+  data: unknown;
+};
+
+function parseSseEvents(buffer: string): { remaining: string; events: PreviewAiSseEvent[] } {
+  const events: PreviewAiSseEvent[] = [];
+  let remaining = buffer;
+
+  while (true) {
+    const boundary = remaining.indexOf('\n\n');
+    if (boundary === -1) {
+      break;
+    }
+
+    const rawEvent = remaining.slice(0, boundary);
+    remaining = remaining.slice(boundary + 2);
+
+    const lines = rawEvent
+      .split(/\r?\n/)
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 0 && !line.startsWith(':'));
+
+    if (lines.length === 0) continue;
+
+    let event = 'message';
+    const dataLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        event = line.slice('event:'.length).trim();
+        continue;
+      }
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice('data:'.length).trimStart());
+      }
+    }
+
+    const rawData = dataLines.join('\n');
+    let data: unknown = null;
+    if (rawData.length > 0) {
+      try {
+        data = JSON.parse(rawData);
+      } catch {
+        data = { text: rawData };
+      }
+    }
+
+    events.push({ event, data });
+  }
+
+  return { remaining, events };
+}
 
 export async function executePreviewAiRequest(
   input: PreviewAiInput,
@@ -27,52 +78,92 @@ export async function executePreviewAiRequest(
     throw new Error('Missing Anthropic API key in host app. Add your BYOK key first.');
   }
 
-  const anthropic = createAnthropic({
-    apiKey: apiKey ?? '',
-    baseURL: '/api/anthropic',
+  const response = await fetch('/api/preview-ai', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
+    },
+    body: JSON.stringify({ input: normalized }),
   });
 
-  const baseOptions = {
-    model: anthropic(DEFAULT_MODEL),
-    system: normalized.system,
-    temperature: normalized.temperature,
-    maxTokens: normalized.maxTokens,
-  };
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? '';
+    const message = contentType.includes('application/json')
+      ? ((await response.json().catch(() => null)) as { error?: string } | null)?.error
+      : await response.text().catch(() => 'Preview AI request failed.');
+    throw new Error(message || 'Preview AI request failed.');
+  }
 
-  const promptOrMessages =
-    normalized.messages && normalized.messages.length > 0
-      ? {
-          messages: normalized.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })) as ModelMessage[],
+  if (!response.body) {
+    throw new Error('Preview AI response stream unavailable.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      buffer += decoder.decode();
+      const parsed = parseSseEvents(buffer);
+      for (const event of parsed.events) {
+        if (event.event === 'text-chunk') {
+          const text = (event.data as { text?: unknown } | null)?.text;
+          handlers.onTextChunk(typeof text === 'string' ? text : '');
+          continue;
         }
-      : {
-          prompt: normalized.prompt ?? '',
-        };
 
-  if (normalized.output.type === 'object') {
-    const result = streamText({
-      ...baseOptions,
-      ...promptOrMessages,
-      output: Output.object({
-        schema: jsonSchema(normalized.output.schema),
-      }),
-    });
+        if (event.event === 'object-chunk') {
+          const object = (event.data as { object?: unknown } | null)?.object;
+          if (object && typeof object === 'object' && !Array.isArray(object)) {
+            handlers.onObjectChunk(object as Record<string, unknown>);
+          }
+          continue;
+        }
 
-    for await (const partialObject of result.partialOutputStream) {
-      handlers.onObjectChunk(partialObject as Record<string, unknown>);
+        if (event.event === 'error') {
+          const error = (event.data as { error?: unknown } | null)?.error;
+          throw new Error(typeof error === 'string' ? error : 'Preview AI request failed.');
+        }
+
+        if (event.event === 'done') {
+          return;
+        }
+      }
+
+      return;
     }
-    await result.response;
-    return;
-  }
 
-  const result = streamText({
-    ...baseOptions,
-    ...promptOrMessages,
-  });
-  for await (const textChunk of result.textStream) {
-    handlers.onTextChunk(textChunk);
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = parseSseEvents(buffer);
+    buffer = parsed.remaining;
+
+    for (const event of parsed.events) {
+      if (event.event === 'text-chunk') {
+        const text = (event.data as { text?: unknown } | null)?.text;
+        handlers.onTextChunk(typeof text === 'string' ? text : '');
+        continue;
+      }
+
+      if (event.event === 'object-chunk') {
+        const object = (event.data as { object?: unknown } | null)?.object;
+        if (object && typeof object === 'object' && !Array.isArray(object)) {
+          handlers.onObjectChunk(object as Record<string, unknown>);
+        }
+        continue;
+      }
+
+      if (event.event === 'error') {
+        const error = (event.data as { error?: unknown } | null)?.error;
+        throw new Error(typeof error === 'string' ? error : 'Preview AI request failed.');
+      }
+
+      if (event.event === 'done') {
+        return;
+      }
+    }
   }
-  await result.response;
 }

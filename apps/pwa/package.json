@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.33",
-    "@webcontainer/api": "^1.5.1",
+    "@upstash/redis": "^1.36.2",
+    "@vercel/sandbox": "^1.6.0",
     "ai": "^6.0.71",
     "dexie": "^4.2.1",
     "edge-pi": "^0.4.1",
