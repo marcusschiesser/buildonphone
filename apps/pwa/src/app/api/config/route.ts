@@ -5,5 +5,6 @@ export async function GET() {
   return NextResponse.json({
     hasServerKey,
     requiresPassword: hasServerKey && !!process.env.APP_PASSWORD?.trim(),
+    jobTimeoutMs: Number(process.env.GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000,
   });
 }

@@ -2,9 +2,11 @@
 
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { clearPersistedJob, getPersistedJob } from './persistJob';
-import { pollGenerationJob } from './pollJob';
+import { pollGenerationJob, StaleJobError } from './pollJob';
 import { applyCompletedJob } from './startGeneration';
 import type { GenerationJobRecord } from './serverTypes';
+import { localStorageAdapter } from '@/lib/storage/db';
+import { getServerConfig } from '@/lib/server-config';
 
 /**
  * Called on component mount and whenever the page becomes visible again.
@@ -21,8 +23,12 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   if (existing?.busy) return;
 
   let res: Response;
+  let jobTimeoutMs: number;
   try {
-    res = await fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' });
+    [res, { jobTimeoutMs }] = await Promise.all([
+      fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' }),
+      getServerConfig(),
+    ]);
   } catch {
     // Network error – server may be temporarily unreachable.  Keep the
     // persisted entry so we can retry on the next visibility change.
@@ -63,6 +69,7 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   // Job is still running on the server – resume polling.
   try {
     const terminalJob = await pollGenerationJob(persisted.jobId, {
+      staleTimeoutMs: jobTimeoutMs,
       onProgress: (j) => {
         patchGeneration(appId, {
           jobId: j.id,
@@ -83,16 +90,35 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
     clearPersistedJob(appId);
     await applyCompletedJob(appId, terminalJob, persisted.nextVersion, persisted.appName);
   } catch (error) {
-    // Network error during polling – the server-side job may still be
-    // running.  Clear busy so the UI is not permanently blocked, but keep
-    // the persisted entry so resumeGenerationIfNeeded retries on the next
-    // visibility change.
     const message = error instanceof Error ? error.message : String(error);
-    setGenerationResult(appId, {
-      ok: false,
-      error: message,
-      completedAt: Date.now(),
-    });
-    // NOTE: intentionally NOT calling clearPersistedJob – retry on next visit.
+
+    if (error instanceof StaleJobError) {
+      // The server worker stopped reporting progress – the job will never
+      // complete.  Clear the persisted entry so we don't retry forever, and
+      // write a permanent error message to the chat.
+      clearPersistedJob(appId);
+      const assistantMessage = await localStorageAdapter.appendMessage(appId, {
+        appId,
+        role: 'assistant',
+        content: `Error: ${message}`,
+      });
+      setGenerationResult(appId, {
+        ok: false,
+        error: message,
+        assistantMessage,
+        completedAt: Date.now(),
+      });
+    } else {
+      // Network error during polling – the server-side job may still be
+      // running.  Clear busy so the UI is not permanently blocked, but keep
+      // the persisted entry so resumeGenerationIfNeeded retries on the next
+      // visibility change.
+      setGenerationResult(appId, {
+        ok: false,
+        error: message,
+        completedAt: Date.now(),
+      });
+      // NOTE: intentionally NOT calling clearPersistedJob – retry on next visit.
+    }
   }
 }

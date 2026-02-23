@@ -7,7 +7,7 @@ import { localStorageAdapter } from '@/lib/storage/db';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
 import { clearPersistedJob, persistActiveJob } from './persistJob';
-import { pollGenerationJob } from './pollJob';
+import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 
 function extractName(prompt: string): string {
@@ -146,7 +146,7 @@ export async function startGeneration(params: {
     });
 
     const fakeGenerationEnabled = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
-    const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+    const [{ hasServerKey, jobTimeoutMs }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
     if (!fakeGenerationEnabled && !apiKey && !hasServerKey) {
       const message = 'Missing Anthropic key';
       const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
@@ -208,6 +208,7 @@ export async function startGeneration(params: {
     jobPersisted = true;
 
     const terminalJob = await pollGenerationJob(created.jobId, {
+      staleTimeoutMs: jobTimeoutMs,
       onProgress: (job) => {
         patchGeneration(params.appId, {
           jobId: job.id,
@@ -231,7 +232,7 @@ export async function startGeneration(params: {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    if (jobPersisted) {
+    if (jobPersisted && !(error instanceof StaleJobError)) {
       // The error occurred during polling, after the server-side job was
       // already created.  The job may still finish successfully – keep the
       // persisted entry so resumeGenerationIfNeeded can re-attach on the next
@@ -242,8 +243,8 @@ export async function startGeneration(params: {
         completedAt: Date.now(),
       });
     } else {
-      // Error before job creation – there is nothing to resume, so record a
-      // permanent error in the chat history and clean up.
+      // Error before job creation, or a stale/stuck job – there is nothing to
+      // resume.  Record a permanent error in the chat history and clean up.
       clearPersistedJob(params.appId);
       patchGeneration(params.appId, {
         phase: 'error',
