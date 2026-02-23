@@ -1,4 +1,4 @@
-type ServerConfig = { hasServerKey: boolean; requiresPassword: boolean };
+type ServerConfig = { hasServerKey: boolean; requiresPassword: boolean; jobTimeoutMs: number };
 
 let cache: ServerConfig | null = null;
 

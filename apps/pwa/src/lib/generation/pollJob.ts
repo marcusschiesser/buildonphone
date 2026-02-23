@@ -1,12 +1,5 @@
 import type { GenerationJobRecord } from './serverTypes';
 
-// If the job's progress.updatedAt hasn't advanced for this long, the
-// server-side worker has very likely crashed or been killed by the platform
-// before it could mark the job as failed.  Treat it as unrecoverable.
-// Mirrors NEXT_PUBLIC_GENERATION_JOB_TIMEOUT_SECONDS (default 300 s) so the
-// client gives up at the same threshold as the server-side timeout.
-const STALE_JOB_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
-
 export class StaleJobError extends Error {
   constructor() {
     super(
@@ -28,6 +21,9 @@ export async function pollGenerationJob(
   handlers: {
     onProgress: (job: GenerationJobRecord) => void;
     signal?: AbortSignal;
+    /** How long progress.updatedAt may stay unchanged before the job is
+     *  considered stuck.  Should match the server-side job timeout. */
+    staleTimeoutMs?: number;
   }
 ): Promise<GenerationJobRecord> {
   let attempt = 0;
@@ -57,19 +53,21 @@ export async function pollGenerationJob(
 
     // Stale detection: track whether progress.updatedAt is advancing.
     // During active generation the server updates it on every text delta,
-    // tool-call, and status change, so silence for STALE_JOB_TIMEOUT_MS means
+    // tool-call, and status change, so silence for staleTimeoutMs means
     // the worker has died.
-    if (lastSeenUpdatedAt !== null && job.progress.updatedAt === lastSeenUpdatedAt) {
-      if (staleWindowStart === null) {
-        staleWindowStart = Date.now();
-      } else if (Date.now() - staleWindowStart > STALE_JOB_TIMEOUT_MS) {
-        throw new StaleJobError();
+    if (handlers.staleTimeoutMs !== undefined) {
+      if (lastSeenUpdatedAt !== null && job.progress.updatedAt === lastSeenUpdatedAt) {
+        if (staleWindowStart === null) {
+          staleWindowStart = Date.now();
+        } else if (Date.now() - staleWindowStart > handlers.staleTimeoutMs) {
+          throw new StaleJobError();
+        }
+      } else {
+        // Progress moved – reset the stale window.
+        staleWindowStart = null;
       }
-    } else {
-      // Progress moved – reset the stale window.
-      staleWindowStart = null;
+      lastSeenUpdatedAt = job.progress.updatedAt;
     }
-    lastSeenUpdatedAt = job.progress.updatedAt;
 
     attempt += 1;
     const waitMs = Math.min(2000, 500 + attempt * 250);

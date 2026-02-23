@@ -6,6 +6,7 @@ import { pollGenerationJob, StaleJobError } from './pollJob';
 import { applyCompletedJob } from './startGeneration';
 import type { GenerationJobRecord } from './serverTypes';
 import { localStorageAdapter } from '@/lib/storage/db';
+import { getServerConfig } from '@/lib/server-config';
 
 /**
  * Called on component mount and whenever the page becomes visible again.
@@ -22,8 +23,12 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   if (existing?.busy) return;
 
   let res: Response;
+  let jobTimeoutMs: number;
   try {
-    res = await fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' });
+    [res, { jobTimeoutMs }] = await Promise.all([
+      fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' }),
+      getServerConfig(),
+    ]);
   } catch {
     // Network error – server may be temporarily unreachable.  Keep the
     // persisted entry so we can retry on the next visibility change.
@@ -64,6 +69,7 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   // Job is still running on the server – resume polling.
   try {
     const terminalJob = await pollGenerationJob(persisted.jobId, {
+      staleTimeoutMs: jobTimeoutMs,
       onProgress: (j) => {
         patchGeneration(appId, {
           jobId: j.id,
