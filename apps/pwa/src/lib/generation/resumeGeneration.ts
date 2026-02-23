@@ -1,6 +1,6 @@
 'use client';
 
-import { getGeneration, patchGeneration, startGenerationState } from './generationStore';
+import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { clearPersistedJob, getPersistedJob } from './persistJob';
 import { pollGenerationJob } from './pollJob';
 import { applyCompletedJob } from './startGeneration';
@@ -74,7 +74,13 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
 
     clearPersistedJob(appId);
     await applyCompletedJob(appId, terminalJob, persisted.nextVersion, persisted.appName);
-  } catch {
+  } catch (error) {
     clearPersistedJob(appId);
+    const message = error instanceof Error ? error.message : String(error);
+    setGenerationResult(appId, {
+      ok: false,
+      error: message,
+      completedAt: Date.now(),
+    });
   }
 }
