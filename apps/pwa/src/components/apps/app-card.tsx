@@ -50,7 +50,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
   };
 
   return (
-    <article className="rounded-3xl border border-cyan-200/20 bg-panel/70 p-4">
+    <article className="overflow-hidden rounded-3xl border border-cyan-200/20 bg-panel/70 p-4">
       {isRenaming ? (
         <div className="space-y-2">
           <label className="text-xs uppercase tracking-[0.2em] text-zinc-400" htmlFor={`rename-${app.id}`}>
