@@ -20,7 +20,15 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   const existing = getGeneration(appId);
   if (existing?.busy) return;
 
-  const res = await fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' });
+  let res: Response;
+  try {
+    res = await fetch(`/api/generation/jobs/${persisted.jobId}`, { cache: 'no-store' });
+  } catch {
+    // Network error – server may be temporarily unreachable.  Keep the
+    // persisted entry so we can retry on the next visibility change.
+    return;
+  }
+
   if (!res.ok) {
     // Job expired or not found – drop the persisted entry.
     clearPersistedJob(appId);
@@ -75,12 +83,16 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
     clearPersistedJob(appId);
     await applyCompletedJob(appId, terminalJob, persisted.nextVersion, persisted.appName);
   } catch (error) {
-    clearPersistedJob(appId);
+    // Network error during polling – the server-side job may still be
+    // running.  Clear busy so the UI is not permanently blocked, but keep
+    // the persisted entry so resumeGenerationIfNeeded retries on the next
+    // visibility change.
     const message = error instanceof Error ? error.message : String(error);
     setGenerationResult(appId, {
       ok: false,
       error: message,
       completedAt: Date.now(),
     });
+    // NOTE: intentionally NOT calling clearPersistedJob – retry on next visit.
   }
 }

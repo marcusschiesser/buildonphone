@@ -102,6 +102,10 @@ export async function startGeneration(params: {
   startGenerationState(params.appId);
 
   let appName = params.appNameHint?.trim() || 'My App';
+  // Tracks whether we reached the polling phase (i.e. a job was created and
+  // persisted).  Used in the catch block to decide whether the error is
+  // recoverable via the resume mechanism or should be saved permanently.
+  let jobPersisted = false;
 
   try {
     const userMsg = await localStorageAdapter.appendMessage(params.appId, {
@@ -201,6 +205,7 @@ export async function startGeneration(params: {
 
     // Persist so the job can be resumed if the user leaves and returns.
     persistActiveJob({ jobId: created.jobId, appId: params.appId, nextVersion, appName });
+    jobPersisted = true;
 
     const terminalJob = await pollGenerationJob(created.jobId, {
       onProgress: (job) => {
@@ -221,28 +226,44 @@ export async function startGeneration(params: {
     });
 
     clearPersistedJob(params.appId);
+    jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
     await applyCompletedJob(params.appId, terminalJob, nextVersion, appName);
   } catch (error) {
-    clearPersistedJob(params.appId);
     const message = error instanceof Error ? error.message : String(error);
-    patchGeneration(params.appId, {
-      phase: 'error',
-      status: `Error: ${message}`,
-    });
 
-    const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
-      appId: params.appId,
-      role: 'assistant',
-      content: `Error: ${message}`,
-    });
+    if (jobPersisted) {
+      // The error occurred during polling, after the server-side job was
+      // already created.  The job may still finish successfully – keep the
+      // persisted entry so resumeGenerationIfNeeded can re-attach on the next
+      // page visit.  Do NOT write a permanent error message to the chat.
+      setGenerationResult(params.appId, {
+        ok: false,
+        error: message,
+        completedAt: Date.now(),
+      });
+    } else {
+      // Error before job creation – there is nothing to resume, so record a
+      // permanent error in the chat history and clean up.
+      clearPersistedJob(params.appId);
+      patchGeneration(params.appId, {
+        phase: 'error',
+        status: `Error: ${message}`,
+      });
 
-    setGenerationResult(params.appId, {
-      ok: false,
-      error: message,
-      assistantMessage,
-      completedAt: Date.now(),
-    });
+      const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
+        appId: params.appId,
+        role: 'assistant',
+        content: `Error: ${message}`,
+      });
 
-    notifyGenerationComplete({ appName, ok: false, error: message });
+      setGenerationResult(params.appId, {
+        ok: false,
+        error: message,
+        assistantMessage,
+        completedAt: Date.now(),
+      });
+
+      notifyGenerationComplete({ appName, ok: false, error: message });
+    }
   }
 }
