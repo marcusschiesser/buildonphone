@@ -99,7 +99,18 @@ App-only commands:
 - `npm run typecheck --workspace @claw2go/pwa`
 - `npm run build --workspace @claw2go/pwa`
 
-## 9) Development Guidelines for Agents
+## 9) Pre-Commit Checklist (mandatory before every commit)
+
+Run both commands from the `apps/pwa` directory and confirm they exit with no errors:
+
+```bash
+npm run lint --workspace @claw2go/pwa
+npm run typecheck --workspace @claw2go/pwa
+```
+
+Fix all reported errors before committing. Do **not** disable lint rules or add `// @ts-ignore` to silence errors — resolve them properly.
+
+## 10) Development Guidelines for Agents
 
 - Prefer targeted edits in existing files over broad rewrites.
 - Preserve route/API contracts unless explicitly changing behavior.
@@ -111,7 +122,7 @@ App-only commands:
 - Organize feature UI in subfolders under `apps/pwa/src/components/**` (for example `components/preview/*`) instead of growing a flat components directory.
 - Use `lucide-react` for product UI icons; prefer icon-only controls only when they include `aria-label` (and `title` when appropriate).
 
-## 10) Common Failure Modes and Fixes
+## 11) Common Failure Modes and Fixes
 
 - **CORS errors to Anthropic from browser**:
   - Use `/api/anthropic/messages` proxy route, not direct `api.anthropic.com` fetch from browser.
@@ -126,7 +137,7 @@ App-only commands:
 - **Missing key after reload**:
   - Verify `byok.ts` localStorage path and `ByokPanel` status detection.
 
-## 11) When Making Security Changes
+## 12) When Making Security Changes
 
 - Do not tighten CSP or iframe sandbox without validating generated previews.
 - If you change security headers, immediately re-test:
@@ -134,7 +145,7 @@ App-only commands:
   - preview render
   - `/run/[id]` render
 
-## 12) Validation Checklist (before handoff)
+## 13) Validation Checklist (before handoff)
 
 Run and confirm all green:
 - `npm run lint --workspace @claw2go/pwa`

@@ -17,6 +17,8 @@ import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
 import { PreviewModeTabs } from './studio/preview-mode-tabs';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
 
 const STUDIO_SHELL_CLASS = 'mx-auto flex h-dvh max-w-7xl flex-col overflow-hidden box-border p-4 lg:p-6';
 const STUDIO_PANEL_CLASS = 'h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-cyan-300/20 p-3';
@@ -215,19 +217,18 @@ export function Studio({
             ))}
           </div>
           <div className="mt-3 flex shrink-0 gap-2">
-            <textarea
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="min-h-[94px] w-full resize-none rounded-2xl border border-zinc-700 bg-black/35 p-3 text-sm outline-none focus:border-cyan-300"
+              style={{ minHeight: '94px' }}
               placeholder="Build me a habit tracker with calendar heatmap and streak logic..."
             />
-            <button
+            <Button
               onClick={send}
               disabled={busy || Boolean(gen?.result) || !input.trim()}
-              className="rounded-2xl bg-accent px-4 py-3 font-semibold text-black disabled:opacity-40"
             >
               {busy ? '...' : 'Send'}
-            </button>
+            </Button>
           </div>
         </section>
 
