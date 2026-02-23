@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, IBM_Plex_Mono } from 'next/font/google';
+import { Nunito, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const sans = Space_Grotesk({ variable: '--font-sans', subsets: ['latin'] });
-const mono = IBM_Plex_Mono({ variable: '--font-mono', subsets: ['latin'], weight: ['400', '500'] });
+const sans = Nunito({ variable: '--font-sans', subsets: ['latin'] });
+const mono = JetBrains_Mono({ variable: '--font-mono', subsets: ['latin'], weight: ['400', '500'] });
 
 export const metadata: Metadata = {
   title: 'Claw2go',

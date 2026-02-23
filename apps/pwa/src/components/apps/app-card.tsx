@@ -50,10 +50,10 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
   };
 
   return (
-    <article className="rounded-3xl border border-cyan-200/20 bg-panel/70 p-4">
+    <article className="rounded-3xl nm-raised bg-ink p-4">
       {isRenaming ? (
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.2em] text-zinc-400" htmlFor={`rename-${app.id}`}>
+          <label className="text-xs uppercase tracking-[0.2em] text-[--text-2]" htmlFor={`rename-${app.id}`}>
             App name
           </label>
           <Input
@@ -66,12 +66,12 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
               if (event.key === 'Escape') cancelRename();
             }}
           />
-          {error ? <p className="text-xs text-red-300">{error}</p> : null}
+          {error ? <p className="text-xs text-[--accent-danger]">{error}</p> : null}
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-cyan-100">{app.name}</h2>
+            <h2 className="text-lg font-semibold text-accent">{app.name}</h2>
             <div className="flex items-center gap-2">
               <Badge variant={app.isDefault ? 'default' : 'secondary'}>
                 {app.isDefault ? 'Default' : 'My App'}
@@ -79,15 +79,15 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
               {generating ? <Badge variant="warning">Generating...</Badge> : null}
             </div>
           </div>
-          <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{app.description || 'No description'}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-[--text-2]">{app.description || 'No description'}</p>
         </>
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link className="rounded-xl border border-zinc-600 px-3 py-2 text-sm text-zinc-200 hover:border-zinc-400" href={`/run/${app.id}`}>
+        <Link className="nm-btn inline-flex items-center justify-center rounded-xl bg-ink px-3 py-2 text-sm text-zinc-300 hover:text-zinc-100" href={`/run/${app.id}`}>
           Run
         </Link>
-        <Link className="rounded-xl bg-accent-2 px-3 py-2 text-sm font-semibold text-black hover:opacity-90" href={`/edit/${app.id}`}>
+        <Link className="nm-btn-accent2 inline-flex items-center justify-center rounded-xl bg-accent-2/15 px-3 py-2 text-sm font-semibold text-accent-2" href={`/edit/${app.id}`}>
           Edit
         </Link>
         {isRenaming ? (

@@ -43,10 +43,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="scanline relative overflow-hidden rounded-2xl">
+    <div className="relative overflow-hidden rounded-2xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="mb-1 block text-xs text-zinc-400" htmlFor="password">
+          <label className="mb-1 block text-xs text-[--text-2]" htmlFor="password">
             Password
           </label>
           <Input
@@ -59,7 +59,7 @@ function LoginForm() {
           />
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-[--accent-danger]">{error}</p>}
 
         <Button type="submit" disabled={loading}>
           {loading ? 'Verifying…' : 'Sign In'}
@@ -72,10 +72,10 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink p-5">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-panel/70 p-8">
+      <div className="w-full max-w-sm rounded-2xl nm-raised bg-ink p-8">
         <div className="mb-6 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Claw2go</p>
-          <h1 className="mt-1 text-xl font-bold text-white">Access Required</h1>
+          <p className="text-xs uppercase tracking-[0.25em] text-accent">Claw2go</p>
+          <h1 className="mt-1 text-xl font-bold text-zinc-100">Access Required</h1>
         </div>
         <Suspense>
           <LoginForm />

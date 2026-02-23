@@ -10,7 +10,7 @@ export function InstallButton() {
   return (
     <button
       onClick={install}
-      className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-2 font-semibold text-accent transition-colors hover:bg-accent/20"
+      className="nm-btn-accent inline-flex items-center justify-center rounded-2xl bg-accent/15 px-4 py-2 font-semibold text-accent"
     >
       Install Claw2Go
     </button>

@@ -64,24 +64,24 @@ export default function HomePage() {
     <main className="mx-auto min-h-screen max-w-7xl p-5 lg:p-8">
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Claw2go</p>
-          <h1 className="text-3xl font-bold text-white">The Open-Source Mobile App Generator</h1>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="text-xs uppercase tracking-[0.25em] text-accent">Claw2go</p>
+          <h1 className="text-3xl font-bold text-zinc-100">The Open-Source Mobile App Generator</h1>
+          <p className="mt-1 text-xs text-[--text-2]">
             Built for the Thumb-First Developer. Powered by{' '}
             <a
               href="https://github.com/marcusschiesser/edge-pi"
               target="_blank"
               rel="noreferrer"
-              className="text-cyan-300 underline"
+              className="text-accent underline"
             >
               edge-pi
             </a>
             .
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <InstallButton />
-          <Link href="/create" className="rounded-2xl bg-accent px-4 py-2 font-semibold text-black">Create App</Link>
+          <Link href="/create" className="nm-btn-accent inline-flex items-center justify-center rounded-2xl bg-accent/15 px-4 py-2 font-semibold text-accent">Create App</Link>
         </div>
       </header>
 
@@ -89,9 +89,9 @@ export default function HomePage() {
         <ByokPanel />
       </div>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {apps.length === 0 ? (
-          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with “Create App”.</div>
+          <div className="rounded-3xl nm-inset bg-ink p-6 text-[--text-2]">No apps yet. Start with "Create App".</div>
         ) : (
           apps.map((app) => (
             <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} generating={generationMap.get(app.id)?.busy ?? false} />
@@ -100,7 +100,7 @@ export default function HomePage() {
       </section>
 
       {Array.from(generationMap.entries()).some(([appId, state]) => state.busy && !apps.some((app) => app.id === appId)) ? (
-        <div className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+        <div className="mt-4 rounded-2xl nm-flat bg-[--accent-warn]/10 p-3 text-sm text-[--accent-warn]">
           Generation is running in the background. It will appear here when app metadata is synced.
         </div>
       ) : null}

@@ -9,16 +9,16 @@ export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonE
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  // Cyan solid – primary call-to-action
-  default: 'bg-accent text-black font-semibold rounded-2xl hover:opacity-90',
-  // Blue solid – secondary primary action (e.g. Edit)
-  secondary: 'bg-accent-2 text-black font-semibold rounded-xl hover:opacity-90',
-  // Cyan border – confirm / save actions
-  outline: 'border border-cyan-400/50 text-cyan-100 rounded-xl hover:border-cyan-300',
-  // Zinc border – neutral secondary actions (cancel, rename, forget …)
-  ghost: 'border border-zinc-600 text-zinc-200 rounded-xl hover:border-zinc-400',
-  // Red border – destructive / danger actions (delete …)
-  destructive: 'border border-red-400/50 text-red-200 rounded-xl hover:border-red-400',
+  // Teal glow – primary call-to-action
+  default: 'nm-btn-accent bg-accent/15 text-accent font-semibold rounded-2xl',
+  // Sky-blue glow – secondary primary action
+  secondary: 'nm-btn-accent2 bg-accent-2/15 text-accent-2 font-semibold rounded-xl',
+  // Raised neutral – confirm / save actions with accent text
+  outline: 'nm-btn bg-ink text-accent rounded-xl',
+  // Flat neutral – secondary actions (cancel, rename…)
+  ghost: 'nm-flat bg-ink text-zinc-300 rounded-xl hover:text-zinc-100',
+  // Raised with danger tint – destructive / delete actions
+  destructive: 'nm-btn bg-ink text-[--accent-danger] rounded-xl',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -37,8 +37,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled}
         {...props}
         className={[
-          'inline-flex items-center justify-center transition-colors',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center',
+          'disabled:opacity-40 disabled:cursor-not-allowed',
           variantClasses[variant],
           sizeClasses[size],
         ].join(' ')}

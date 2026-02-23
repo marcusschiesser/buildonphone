@@ -26,9 +26,9 @@ export function ByokPanel() {
   if (serverManaged) return null;
 
   return (
-    <div className="rounded-2xl border border-cyan-300/25 bg-panel/80 p-4 backdrop-blur scanline">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">Anthropic BYOK</div>
-      <p className="mb-3 text-xs text-zinc-300">Your key is encrypted in browser storage and never persisted server-side.</p>
+    <div className="rounded-2xl nm-raised bg-ink p-4">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-accent">Anthropic BYOK</div>
+      <p className="mb-3 text-xs text-[--text-2]">Your key is encrypted in browser storage and never persisted server-side.</p>
       <div className="flex gap-2">
         <Input
           type="password"
@@ -60,7 +60,7 @@ export function ByokPanel() {
           Forget
         </Button>
       </div>
-      {status ? <div className="mt-2 text-xs text-cyan-200">{status}</div> : null}
+      {status ? <div className="mt-2 text-xs text-accent">{status}</div> : null}
     </div>
   );
 }

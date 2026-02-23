@@ -21,10 +21,10 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 
 const STUDIO_SHELL_CLASS = 'mx-auto flex h-dvh max-w-7xl flex-col overflow-hidden box-border p-4 lg:p-6';
-const STUDIO_PANEL_CLASS = 'h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl border border-cyan-300/20 p-3';
-const STUDIO_TITLE_CLASS = 'mb-2 text-xs uppercase tracking-[0.2em] text-cyan-100';
-const MOBILE_TAB_CLASS = 'rounded-xl py-2 text-sm';
-const THREAD_SCROLL_CLASS = 'min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-black/25 p-3';
+const STUDIO_PANEL_CLASS = 'h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-3xl nm-raised bg-ink p-3';
+const STUDIO_TITLE_CLASS = 'mb-2 text-xs uppercase tracking-[0.2em] text-accent';
+const MOBILE_TAB_CLASS = 'rounded-xl py-2 text-sm transition-all';
+const THREAD_SCROLL_CLASS = 'min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl nm-inset bg-ink p-3';
 
 export function Studio({
   appId,
@@ -151,37 +151,37 @@ export function Studio({
     <div className={STUDIO_SHELL_CLASS}>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/" className="rounded-xl border border-zinc-700 px-3 py-1.5 text-xs text-zinc-200 hover:border-cyan-300 hover:text-cyan-200">
+          <Link href="/" className="nm-btn inline-flex items-center justify-center rounded-xl bg-ink px-3 py-1.5 text-xs text-zinc-300 hover:text-zinc-100">
             Back to Apps
           </Link>
           <div>
-          <h1 className="text-lg font-bold tracking-[0.16em] text-cyan-200 uppercase">Claw2go Studio</h1>
-          <p className="text-[11px] text-zinc-400">
-            Built for the Thumb-First Developer. Powered by{' '}
-            <a
-              href="https://github.com/marcusschiesser/edge-pi"
-              target="_blank"
-              rel="noreferrer"
-              className="text-cyan-300 underline"
-            >
-              edge-pi
-            </a>
-            .
-          </p>
+            <h1 className="text-lg font-bold tracking-[0.16em] text-accent uppercase">Claw2go Studio</h1>
+            <p className="text-[11px] text-[--text-2]">
+              Built for the Thumb-First Developer. Powered by{' '}
+              <a
+                href="https://github.com/marcusschiesser/edge-pi"
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent underline"
+              >
+                edge-pi
+              </a>
+              .
+            </p>
           </div>
         </div>
-        <div className="rounded-lg border border-cyan-300/20 bg-panel/60 px-3 py-1 text-xs text-cyan-100">{versionLabel}</div>
+        <div className="nm-flat rounded-lg bg-ink px-3 py-1 text-xs text-accent">{versionLabel}</div>
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-zinc-800 bg-panel/60 p-1 lg:hidden">
+      <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl nm-inset bg-ink p-1 lg:hidden">
         <button
-          className={`${MOBILE_TAB_CLASS} ${activeTab === 'chat' ? 'bg-accent text-black' : 'text-zinc-300'}`}
+          className={`${MOBILE_TAB_CLASS} ${activeTab === 'chat' ? 'nm-raised-sm bg-accent/15 text-accent' : 'text-[--text-2]'}`}
           onClick={() => setActiveTab('chat')}
         >
           Chat
         </button>
         <button
-          className={`${MOBILE_TAB_CLASS} ${activeTab === 'preview' ? 'bg-accent text-black' : 'text-zinc-300'}`}
+          className={`${MOBILE_TAB_CLASS} ${activeTab === 'preview' ? 'nm-raised-sm bg-accent/15 text-accent' : 'text-[--text-2]'}`}
           onClick={() => setActiveTab('preview')}
         >
           Preview
@@ -189,12 +189,12 @@ export function Studio({
       </div>
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <section className={`${activeTab === 'chat' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} bg-panel/75 lg:flex`}>
+        <section className={`${activeTab === 'chat' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} lg:flex`}>
           <div className={STUDIO_TITLE_CLASS}>Prompt Thread</div>
           <div className={THREAD_SCROLL_CLASS}>
             {threadMessages.length === 0 ? (
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-zinc-400">Describe the app you want to build, or try one of these examples:</p>
+                <p className="text-sm text-[--text-2]">Describe the app you want to build, or try one of these examples:</p>
                 <div className="flex flex-col gap-2">
                   {[
                     'Build me a habit tracker with a calendar heatmap and streak logic',
@@ -204,7 +204,7 @@ export function Studio({
                     <button
                       key={example}
                       onClick={() => setInput(example)}
-                      className="rounded-xl border border-zinc-700 bg-black/20 px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:border-cyan-300/50 hover:text-zinc-100"
+                      className="nm-flat rounded-xl bg-ink px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:text-zinc-100"
                     >
                       {example}
                     </button>
@@ -232,7 +232,7 @@ export function Studio({
           </div>
         </section>
 
-        <section className={`${activeTab === 'preview' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} bg-panel-2/50 lg:flex`}>
+        <section className={`${activeTab === 'preview' ? 'flex' : 'hidden'} ${STUDIO_PANEL_CLASS} lg:flex`}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className={STUDIO_TITLE_CLASS}>Live Preview</div>
             <PreviewModeTabs mode={previewMode} onChange={setPreviewMode} />
@@ -241,7 +241,7 @@ export function Studio({
             {previewMode === 'preview' ? (
               <PreviewFrame files={files} onFixError={onPreviewFix} />
             ) : (
-              <pre className="h-full w-full overflow-auto rounded-2xl border border-cyan-300/20 bg-black/40 p-3 text-xs leading-relaxed text-zinc-100">
+              <pre className="h-full w-full overflow-auto rounded-2xl nm-inset bg-ink p-3 text-xs leading-relaxed text-zinc-100">
                 <code>{files['app.jsx']?.trim() || '// No app.jsx generated yet.'}</code>
               </pre>
             )}

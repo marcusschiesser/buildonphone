@@ -1,20 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #0b0f1a;
-  --panel: #121a2c;
-  --panel-2: #1b2947;
-  --accent: #43ffd1;
-  --accent-2: #5da8ff;
+  /* ─── Neumorphic base palette ───────────────────────────── */
+  /* All three values share the same hue – only lightness varies */
+  --nm-bg:    #1e2640;   /* base surface */
+  --nm-dark:  #131827;   /* shadow – darker side  */
+  --nm-light: #2d3960;   /* highlight – lighter side */
+
+  /* ─── Brand accents ─────────────────────────────────────── */
+  --accent:        #5ee7c8;   /* teal – primary CTA  */
+  --accent-2:      #82c0ff;   /* sky-blue – secondary */
+  --accent-warn:   #f5c84a;   /* amber – status/warning */
+  --accent-danger: #f47b7b;   /* coral-red – destructive */
+
+  /* ─── Typographic scale ─────────────────────────────────── */
+  --text-1: #c8d4ec;   /* primary   */
+  --text-2: #7a8db0;   /* secondary */
+  --text-3: #4a5875;   /* muted     */
+
+  /* ─── Backward-compat aliases ───────────────────────────── */
+  --ink:     var(--nm-bg);
+  --panel:   var(--nm-bg);
+  --panel-2: var(--nm-bg);
 }
 
 @theme inline {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --color-ink: var(--ink);
-  --color-panel: var(--panel);
-  --color-panel-2: var(--panel-2);
-  --color-accent: var(--accent);
+  --color-ink:     var(--nm-bg);
+  --color-panel:   var(--nm-bg);
+  --color-panel-2: var(--nm-bg);
+  --color-accent:  var(--accent);
   --color-accent-2: var(--accent-2);
 }
 
@@ -29,22 +45,112 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 90% -10%, rgba(93, 168, 255, 0.18), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(67, 255, 209, 0.18), transparent 60%),
-    var(--ink);
+  background-color: var(--nm-bg);
+  color: var(--text-1);
 }
 
-.scanline {
-  position: relative;
+/* ══════════════════════════════════════════════════════════
+   NEUMORPHIC UTILITY CLASSES
+   All shadows are derived from --nm-dark and --nm-light so
+   they move naturally with any future palette change.
+══════════════════════════════════════════════════════════ */
+
+/* ─── Static depth ──────────────────────────────────────── */
+
+/* Raised – element pops out of the background */
+.nm-raised {
+  box-shadow:
+    6px 6px 14px var(--nm-dark),
+    -6px -6px 14px var(--nm-light);
 }
 
-.scanline::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 100% 4px;
-  opacity: 0.14;
+/* Raised – compact variant for small components */
+.nm-raised-sm {
+  box-shadow:
+    3px 3px 7px var(--nm-dark),
+    -3px -3px 7px var(--nm-light);
+}
+
+/* Inset – element pressed into the background */
+.nm-inset {
+  box-shadow:
+    inset 4px 4px 9px var(--nm-dark),
+    inset -4px -4px 9px var(--nm-light);
+}
+
+/* Inset – compact variant */
+.nm-inset-sm {
+  box-shadow:
+    inset 2px 2px 5px var(--nm-dark),
+    inset -2px -2px 5px var(--nm-light);
+}
+
+/* Flat – very subtle relief, almost level */
+.nm-flat {
+  box-shadow:
+    2px 2px 5px var(--nm-dark),
+    -2px -2px 5px var(--nm-light);
+}
+
+/* ─── Interactive buttons ────────────────────────────────── */
+
+/* Base interactive button – raises, then presses on click */
+.nm-btn {
+  box-shadow:
+    4px 4px 9px var(--nm-dark),
+    -4px -4px 9px var(--nm-light);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.nm-btn:hover:not(:disabled) {
+  box-shadow:
+    5px 5px 12px var(--nm-dark),
+    -5px -5px 12px var(--nm-light);
+}
+.nm-btn:active:not(:disabled) {
+  box-shadow:
+    inset 3px 3px 7px var(--nm-dark),
+    inset -3px -3px 7px var(--nm-light);
+  transform: scale(0.98);
+}
+
+/* Primary accent button – teal glow */
+.nm-btn-accent {
+  box-shadow:
+    4px 4px 9px var(--nm-dark),
+    -4px -4px 9px var(--nm-light),
+    0 0 18px rgba(94, 231, 200, 0.15);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.nm-btn-accent:hover:not(:disabled) {
+  box-shadow:
+    5px 5px 12px var(--nm-dark),
+    -5px -5px 12px var(--nm-light),
+    0 0 26px rgba(94, 231, 200, 0.28);
+}
+.nm-btn-accent:active:not(:disabled) {
+  box-shadow:
+    inset 3px 3px 7px var(--nm-dark),
+    inset -3px -3px 7px var(--nm-light);
+  transform: scale(0.98);
+}
+
+/* Secondary accent button – sky-blue glow */
+.nm-btn-accent2 {
+  box-shadow:
+    4px 4px 9px var(--nm-dark),
+    -4px -4px 9px var(--nm-light),
+    0 0 18px rgba(130, 192, 255, 0.15);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.nm-btn-accent2:hover:not(:disabled) {
+  box-shadow:
+    5px 5px 12px var(--nm-dark),
+    -5px -5px 12px var(--nm-light),
+    0 0 26px rgba(130, 192, 255, 0.28);
+}
+.nm-btn-accent2:active:not(:disabled) {
+  box-shadow:
+    inset 3px 3px 7px var(--nm-dark),
+    inset -3px -3px 7px var(--nm-light);
+  transform: scale(0.98);
 }
