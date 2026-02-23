@@ -23,6 +23,25 @@ export interface ServerAgentResult {
   artifacts: Record<string, string>;
 }
 
+const HOBBY_MAX_TIMEOUT_MS = 300_000;
+const DEFAULT_TIMEOUT_MS = 300_000;
+
+function getSandboxTimeoutMs(): number {
+  const configured = Number(process.env.GENERATION_SANDBOX_TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS));
+
+  if (!Number.isFinite(configured) || configured <= 0) {
+    throw new Error('GENERATION_SANDBOX_TIMEOUT_MS must be a positive number.');
+  }
+
+  if (configured > HOBBY_MAX_TIMEOUT_MS) {
+    throw new Error(
+      `GENERATION_SANDBOX_TIMEOUT_MS (${configured}ms) exceeds Vercel Hobby max (${HOBBY_MAX_TIMEOUT_MS}ms).`
+    );
+  }
+
+  return configured;
+}
+
 async function hydrateRuntimeWithBaseFilesOrThrow(
   runtime: ReturnType<typeof createVercelSandboxRuntime>,
   baseFiles: Record<string, string> | undefined,
@@ -59,9 +78,11 @@ async function readGeneratedAppJsx(runtime: ReturnType<typeof createVercelSandbo
 }
 
 export async function runServerAgent(input: ServerAgentInput): Promise<ServerAgentResult> {
+  const timeoutMs = getSandboxTimeoutMs();
+
   const sandbox = await Sandbox.create({
     runtime: 'node22',
-    timeout: Number(process.env.GENERATION_SANDBOX_TIMEOUT_MS || '300000'),
+    timeout: timeoutMs,
   });
 
   try {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { safeRandomId } from '@/lib/id';
 import { createJob } from '@/lib/generation/jobStore';
 import { runGenerationJob } from '@/lib/generation/serverWorker';
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   await createJob(job);
 
   const byok = req.headers.get('x-api-key')?.trim();
-  void runGenerationJob(jobId, byok);
+  after(() => runGenerationJob(jobId, byok));
 
   return NextResponse.json(
     {
