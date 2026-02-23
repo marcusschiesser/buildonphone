@@ -3,7 +3,9 @@ import type { GenerationJobRecord } from './serverTypes';
 // If the job's progress.updatedAt hasn't advanced for this long, the
 // server-side worker has very likely crashed or been killed by the platform
 // before it could mark the job as failed.  Treat it as unrecoverable.
-const STALE_JOB_TIMEOUT_MS = 90_000;
+// Mirrors NEXT_PUBLIC_GENERATION_JOB_TIMEOUT_SECONDS (default 300 s) so the
+// client gives up at the same threshold as the server-side timeout.
+const STALE_JOB_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
 
 export class StaleJobError extends Error {
   constructor() {
@@ -55,7 +57,8 @@ export async function pollGenerationJob(
 
     // Stale detection: track whether progress.updatedAt is advancing.
     // During active generation the server updates it on every text delta,
-    // tool-call, and status change, so 90 s of silence means the worker died.
+    // tool-call, and status change, so silence for STALE_JOB_TIMEOUT_MS means
+    // the worker has died.
     if (lastSeenUpdatedAt !== null && job.progress.updatedAt === lastSeenUpdatedAt) {
       if (staleWindowStart === null) {
         staleWindowStart = Date.now();

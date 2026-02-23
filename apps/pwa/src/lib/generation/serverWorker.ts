@@ -4,7 +4,7 @@ import { runFakeGeneration, isFakeGenerationEnabled } from './fakeGeneration';
 import { completeJob, failJob, getJob, updateJobProgress } from './jobStore';
 import type { GenerationJobRecord } from './serverTypes';
 
-const JOB_TIMEOUT_MS = Number(process.env.GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
+const JOB_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | null = null;
