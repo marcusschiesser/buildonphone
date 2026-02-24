@@ -1,0 +1,23 @@
+.layout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+}
+
+.cardFlex {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scrollFill {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.examplePromptBtn {
+  width: 100%;
+  text-transform: none;
+}

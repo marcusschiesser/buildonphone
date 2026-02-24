@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,6 +13,8 @@
     "smoke": "playwright test -c playwright.config.ts"
   },
   "dependencies": {
+    "@ionic/core": "^8.7.11",
+    "@ionic/react": "^8.7.11",
     "@ai-sdk/anthropic": "^3.0.33",
     "@upstash/redis": "^1.36.2",
     "@vercel/sandbox": "^1.6.0",
@@ -23,25 +25,22 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "ionicons": "^7.4.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
   },
   "optionalDependencies": {
-    "@tailwindcss/oxide-linux-x64-gnu": "4.2.0",
-    "@tailwindcss/oxide-linux-x64-musl": "4.2.0",
     "lightningcss-linux-x64-gnu": "1.31.1",
     "lightningcss-linux-x64-musl": "1.31.1"
   }

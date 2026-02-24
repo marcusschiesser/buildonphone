@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isPasswordProtectionEnabled, verifyAuthCookie, COOKIE_NAME } from '@/lib/auth';
 
-const PUBLIC_PREFIXES = ['/api/auth', '/api/config', '/login'];
+const PUBLIC_PREFIXES = [
+  '/api/auth',
+  '/api/config',
+  '/login',
+  '/next.svg',
+  '/window.svg',
+  '/globe.svg',
+  '/file.svg',
+  '/vercel.svg',
+];
 
 function isPublicPath(pathname: string): boolean {
+  if (!pathname.startsWith('/api/') && pathname.includes('.')) {
+    return true;
+  }
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -36,5 +48,5 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image).*)'],
+  matcher: ['/((?!_next/static|_next/image|.*\\..*).*)'],
 };

@@ -1,0 +1,13 @@
+.relativeFill {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--ion-border-color);
+  border-radius: 14px;
+  background: var(--ion-color-step-50);
+}

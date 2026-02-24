@@ -1,5 +1,6 @@
+import { IonButton, IonCard, IonCardContent, IonText } from '@ionic/react';
 import type { PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
-import { Button } from '@/components/ui/button';
+import styles from './runtime-error-panel.module.css';
 
 export function PreviewRuntimeErrorPanel({
   error,
@@ -9,21 +10,23 @@ export function PreviewRuntimeErrorPanel({
   onFix?: () => void;
 }) {
   return (
-    <div className="absolute inset-x-3 bottom-3 z-10 rounded-xl border border-red-400/40 bg-zinc-950/95 p-3 text-zinc-100 shadow-lg backdrop-blur">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-red-300">Generated App Runtime Error</div>
-      <p className="mt-1 text-sm text-zinc-200">{error.errorMessage || 'Unknown runtime error'}</p>
-      {error.stack?.trim() ? (
-        <pre className="mt-2 max-h-36 overflow-auto rounded-md bg-black/35 p-2 text-[11px] leading-relaxed text-zinc-300">
-          {error.stack}
-        </pre>
-      ) : null}
-      {onFix ? (
-        <div className="mt-2 flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={onFix}>
-            Fix
-          </Button>
-        </div>
-      ) : null}
+    <div className={styles.panel}>
+      <IonCard color="danger" className={styles.card}>
+        <IonCardContent>
+          <IonText color="light" className={styles.kicker}>
+            Generated App Runtime Error
+          </IonText>
+          <p className={styles.message}>{error.errorMessage || 'Unknown runtime error'}</p>
+          {error.stack?.trim() ? <pre className={styles.stack}>{error.stack}</pre> : null}
+          {onFix ? (
+            <div className={styles.actions}>
+              <IonButton size="small" fill="outline" color="light" onClick={onFix}>
+                Fix
+              </IonButton>
+            </div>
+          ) : null}
+        </IonCardContent>
+      </IonCard>
     </div>
   );
 }
