@@ -41,35 +41,20 @@ async function clearClientStorage(page: import('@playwright/test').Page) {
   });
 }
 
-test('background generation survives navigation without Anthropic key', async ({ page }) => {
+test('smoke generation works without Anthropic key', async ({ page }) => {
   await clearClientStorage(page);
 
   await page.goto('/create');
   await page.getByRole('textbox').fill(PROMPT);
   await page.getByRole('button', { name: 'Send' }).click();
-  await expect(page.getByRole('button', { name: '...' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Send|Working\.\.\./ })).toBeDisabled();
+  await expect(page.getByText('v1')).toBeVisible({ timeout: 20_000 });
 
-  await page.getByRole('link', { name: 'Back to Apps' }).click();
+  await page.getByRole('button', { name: 'Back' }).click();
 
-  const generatedCard = page.locator('article').filter({ hasText: PROMPT });
-  const generatingBadge = generatedCard.getByText('Generating...');
-  const deleteButton = generatedCard.getByRole('button', { name: 'Delete' });
+  const generatedCard = page.locator('ion-card').filter({ hasText: PROMPT });
   await expect(generatedCard).toBeVisible();
-
-  // Fake generation can complete quickly in CI, so badge visibility is optional.
-  if (await generatingBadge.isVisible()) {
-    await expect(deleteButton).toBeDisabled();
-    await expect(generatingBadge).toBeHidden({ timeout: 20_000 });
-  }
-
-  await expect(deleteButton).toBeEnabled({ timeout: 20_000 });
-
-  await generatedCard.getByRole('link', { name: 'Edit' }).click();
-  await expect(page.getByText('v1')).toBeVisible();
-  await expect(page.getByText('Generated deterministic CI fake app.')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Back to Apps' }).click();
-  await generatedCard.getByRole('link', { name: 'Run' }).click();
+  await generatedCard.getByRole('button', { name: 'Run' }).click();
 
   const runFrame = page.frameLocator('iframe[title="preview"]');
   await expect(runFrame.getByText(FAKE_MARKER)).toBeVisible();

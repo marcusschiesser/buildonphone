@@ -45,6 +45,10 @@ export default function HomePage() {
       if (active) setApps(nextApps);
     })();
 
+    const resumeInterval = window.setInterval(() => {
+      resumeAllPending();
+    }, 2000);
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         resumeAllPending();
@@ -54,6 +58,7 @@ export default function HomePage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       active = false;
+      window.clearInterval(resumeInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

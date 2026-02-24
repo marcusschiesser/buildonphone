@@ -1,4 +1,6 @@
 import { Redis } from '@upstash/redis';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import type { GenerationJobRecord, GenerationJobResult, GenerationJobStatus } from './serverTypes';
 
 const JOB_PREFIX = 'claw2go:genjob:';
@@ -7,7 +9,7 @@ const DEFAULT_TTL_SECONDS = Number(process.env.GENERATION_JOB_TTL_SECONDS || '86
 type PartialProgress = Partial<GenerationJobRecord['progress']>;
 
 let redisClient: Redis | null = null;
-const memoryStore = new Map<string, GenerationJobRecord>();
+const fallbackFilePath = resolve(process.cwd(), process.env.GENERATION_JOB_FALLBACK_FILE || '.next/gen-jobs.json');
 
 function allowInMemoryFallback(): boolean {
   return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
@@ -46,7 +48,10 @@ async function get(jobId: string): Promise<GenerationJobRecord | null> {
       'Missing Redis configuration. Set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN.'
     );
   }
-  if (!redis) return memoryStore.get(jobId) ?? null;
+  if (!redis) {
+    const store = await readFallbackStore();
+    return store[jobId] ?? null;
+  }
   return (await redis.get<GenerationJobRecord>(jobKey(jobId))) ?? null;
 }
 
@@ -60,10 +65,30 @@ async function set(record: GenerationJobRecord): Promise<void> {
     );
   }
   if (!redis) {
-    memoryStore.set(record.id, record);
+    const store = await readFallbackStore();
+    store[record.id] = record;
+    await writeFallbackStore(store);
     return;
   }
   await redis.set(jobKey(record.id), record, { ex: DEFAULT_TTL_SECONDS });
+}
+
+type FallbackStore = Record<string, GenerationJobRecord>;
+
+async function readFallbackStore(): Promise<FallbackStore> {
+  try {
+    const raw = await readFile(fallbackFilePath, 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed as FallbackStore;
+  } catch {
+    return {};
+  }
+}
+
+async function writeFallbackStore(store: FallbackStore): Promise<void> {
+  await mkdir(dirname(fallbackFilePath), { recursive: true });
+  await writeFile(fallbackFilePath, JSON.stringify(store), 'utf8');
 }
 
 function patch(record: GenerationJobRecord, updates: Partial<GenerationJobRecord>): GenerationJobRecord {

@@ -12,6 +12,8 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://127.0.0.1:3100',
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
     trace: 'on-first-retry',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
@@ -23,6 +25,9 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       NEXT_PUBLIC_FAKE_GENERATION: '1',
+      ANTHROPIC_API_KEY: '',
+      APP_PASSWORD: '',
+      NEXT_DIST_DIR: '.next-smoke',
     },
   },
 });
