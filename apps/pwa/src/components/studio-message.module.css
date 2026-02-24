@@ -1,0 +1,57 @@
+.row {
+  display: flex;
+  margin: 8px 0;
+}
+
+.assistantRow {
+  justify-content: flex-start;
+}
+
+.userRow {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: min(88%, 560px);
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.assistantBubble {
+  border: 1px solid var(--ion-border-color);
+  background: var(--ion-item-background, var(--ion-color-step-50));
+}
+
+.userBubble {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  --ion-text-color: var(--ion-color-primary-contrast);
+  --ion-border-color: color-mix(in srgb, var(--ion-color-primary-contrast) 28%, transparent);
+}
+
+.statusBubble {
+  border: 1px solid color-mix(in srgb, var(--ion-color-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--ion-color-warning) 16%, var(--ion-background-color));
+}
+
+.roleLabel {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  text-transform: capitalize;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progressText {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
