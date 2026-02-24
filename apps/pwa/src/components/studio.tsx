@@ -29,7 +29,6 @@ import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeE
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
-import { PreviewModeTabs } from './studio/preview-mode-tabs';
 import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
 
@@ -44,12 +43,12 @@ export function Studio({
   initialMessages?: ChatMessage[];
   initialVersion?: number;
 }) {
-  const router = useRouter();  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
+  const router = useRouter();
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
-  const [previewMode, setPreviewMode] = useState<'preview' | 'code'>('preview');
+  const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'code'>('chat');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
   const notificationPermissionRequestedRef = useRef(false);
   const gen = useGeneration(appId);
@@ -184,19 +183,23 @@ export function Studio({
             <IonNote>{versionLabel}</IonNote>
           </IonButtons>
         </IonToolbar>
-      </IonHeader>
-
-      <IonContent fullscreen>
-        <div className={`page-shell ion-padding studio-shell ${styles.layout}`}>
-          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
+        <IonToolbar>
+          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview' | 'code') ?? 'chat')}>
             <IonSegmentButton value="chat">
               <IonLabel>Chat</IonLabel>
             </IonSegmentButton>
             <IonSegmentButton value="preview">
               <IonLabel>Preview</IonLabel>
             </IonSegmentButton>
+            <IonSegmentButton value="code">
+              <IonLabel>Code</IonLabel>
+            </IonSegmentButton>
           </IonSegment>
+        </IonToolbar>
+      </IonHeader>
 
+      <IonContent fullscreen>
+        <div className={`page-shell ion-padding studio-shell ${styles.layout}`}>
           {activeTab === 'chat' ? (
             <div className={styles.chatPane}>
               <IonList inset className={styles.scrollFill}>
@@ -229,19 +232,16 @@ export function Studio({
                 ))}
               </IonList>
             </div>
+          ) : activeTab === 'preview' ? (
+            <div className={styles.cardFlex}>
+              <PreviewFrame files={files} onFixError={onPreviewFix} />
+            </div>
           ) : (
-            <>
-              <PreviewModeTabs mode={previewMode} onChange={setPreviewMode} />
-              <div className={styles.cardFlex}>
-                {previewMode === 'preview' ? (
-                  <PreviewFrame files={files} onFixError={onPreviewFix} />
-                ) : (
-                  <IonItem lines="inset">
-                    <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
-                  </IonItem>
-                )}
-              </div>
-            </>
+            <div className={styles.cardFlex}>
+              <IonItem lines="inset">
+                <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
+              </IonItem>
+            </div>
           )}
         </div>
       </IonContent>
