@@ -3,12 +3,14 @@
 import { IonButton, IonButtons, IonFooter, IonIcon, IonLabel, IonToolbar } from '@ionic/react';
 import { addCircleOutline, gridOutline } from 'ionicons/icons';
 import { useRouter } from 'next/navigation';
+import type { ReactNode } from 'react';
 
-export function MobileTabs({ active }: { active: 'home' | 'studio' }) {
+export function MobileTabs({ active, topContent }: { active: 'home' | 'studio'; topContent?: ReactNode }) {
   const router = useRouter();
 
   return (
     <IonFooter className="mobile-tabs-shell">
+      {topContent ? <IonToolbar className="mobile-tabs-extra">{topContent}</IonToolbar> : null}
       <IonToolbar>
         <IonButtons style={{ display: 'grid', width: '100%', gridTemplateColumns: '1fr 1fr' }}>
           <IonButton

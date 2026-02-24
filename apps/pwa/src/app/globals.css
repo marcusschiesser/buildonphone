@@ -22,7 +22,7 @@ ion-content {
 }
 
 .studio-shell {
-  height: calc(100dvh - 72px - var(--ion-safe-area-top) - 72px);
+  height: calc(100dvh - 72px - var(--ion-safe-area-top) - 56px);
 }
 
 .mobile-tabs-shell {
@@ -33,6 +33,12 @@ ion-content {
   bottom: 0;
   z-index: 30;
   padding-bottom: var(--ion-safe-area-bottom);
+}
+
+.mobile-tabs-extra {
+  border-top: 1px solid var(--ion-border-color);
+  padding: 8px 12px;
+  background: var(--ion-background-color);
 }
 
 @media (min-width: 960px) {

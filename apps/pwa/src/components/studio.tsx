@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   IonButton,
   IonButtons,
-  IonCard,
-  IonCardContent,
   IonContent,
   IonHeader,
   IonItem,
@@ -189,78 +187,82 @@ export function Studio({
       </IonHeader>
 
       <IonContent fullscreen>
-              <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
-                <IonSegmentButton value="chat">
-                  <IonLabel>Chat</IonLabel>
-                </IonSegmentButton>
-                <IonSegmentButton value="preview">
-                  <IonLabel>Preview</IonLabel>
-                </IonSegmentButton>
-              </IonSegment>
+        <div className={`page-shell ion-padding studio-shell ${styles.layout}`}>
+          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
+            <IonSegmentButton value="chat">
+              <IonLabel>Chat</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="preview">
+              <IonLabel>Preview</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
 
-              {activeTab === 'chat' ? (
-                <>
-                  <IonList inset className={styles.scrollFill}>
-                    {threadMessages.length === 0 ? (
-                      <IonItem lines="inset">
-                        <IonLabel>
-                          <p className="ion-no-margin ion-margin-bottom">
-                            Describe the app you want to build, or try one of these examples:
-                          </p>
-                          {[
-                            'Build me a habit tracker with a calendar heatmap and streak logic',
-                            'Create a Pomodoro timer with session history and stats',
-                            'Make a markdown notes app with live preview and local storage',
-                          ].map((example) => (
-                            <IonButton
-                              key={example}
-                              fill="clear"
-                              color="secondary"
-                              onClick={() => setInput(example)}
-                              className={styles.examplePromptBtn}
-                            >
-                              {example}
-                            </IonButton>
-                          ))}
-                        </IonLabel>
-                      </IonItem>
-                    ) : null}
-                    {threadMessages.map((m) => (
-                      <StudioMessage key={m.id} message={m} />
-                    ))}
-                  </IonList>
-
+          {activeTab === 'chat' ? (
+            <div className={styles.chatPane}>
+              <IonList inset className={styles.scrollFill}>
+                {threadMessages.length === 0 ? (
                   <IonItem lines="inset">
-                    <IonTextarea
-                      value={input}
-                      onIonInput={(event) => setInput(event.detail.value ?? '')}
-                      autoGrow
-                      placeholder="Build me a habit tracker with calendar heatmap and streak logic..."
-                    />
+                    <IonLabel>
+                      <p className="ion-no-margin ion-margin-bottom">
+                        Describe the app you want to build, or try one of these examples:
+                      </p>
+                      {[
+                        'Build me a habit tracker with a calendar heatmap and streak logic',
+                        'Create a Pomodoro timer with session history and stats',
+                        'Make a markdown notes app with live preview and local storage',
+                      ].map((example) => (
+                        <IonButton
+                          key={example}
+                          fill="clear"
+                          color="secondary"
+                          onClick={() => setInput(example)}
+                          className={styles.examplePromptBtn}
+                        >
+                          {example}
+                        </IonButton>
+                      ))}
+                    </IonLabel>
                   </IonItem>
-
-                  <div className="ion-text-right ion-margin-top">
-                    <IonButton onClick={send} disabled={busy || Boolean(gen?.result) || !input.trim()}>
-                      {busy ? 'Working...' : 'Send'}
-                    </IonButton>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <PreviewModeTabs mode={previewMode} onChange={setPreviewMode} />
-                  <div className={styles.cardFlex}>
-                    {previewMode === 'preview' ? (
-                      <PreviewFrame files={files} onFixError={onPreviewFix} />
-                    ) : (
-                      <IonItem lines="inset">
-                        <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
-                      </IonItem>
-                    )}
-                  </div>
-                </>
-              )}
+                ) : null}
+                {threadMessages.map((m) => (
+                  <StudioMessage key={m.id} message={m} />
+                ))}
+              </IonList>
+            </div>
+          ) : (
+            <>
+              <PreviewModeTabs mode={previewMode} onChange={setPreviewMode} />
+              <div className={styles.cardFlex}>
+                {previewMode === 'preview' ? (
+                  <PreviewFrame files={files} onFixError={onPreviewFix} />
+                ) : (
+                  <IonItem lines="inset">
+                    <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
+                  </IonItem>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </IonContent>
-      <MobileTabs active="studio" />
+      <MobileTabs
+        active="studio"
+        topContent={
+          activeTab === 'chat' ? (
+            <IonItem lines="inset">
+              <IonTextarea
+                value={input}
+                onIonInput={(event) => setInput(event.detail.value ?? '')}
+                autoGrow
+                placeholder="Build me a habit tracker with calendar heatmap and streak logic..."
+              />
+              <IonButton onClick={send} disabled={busy || Boolean(gen?.result) || !input.trim()}>
+                {busy ? 'Working...' : 'Send'}
+              </IonButton>
+            </IonItem>
+          ) : null
+        }
+      />
     </IonPage>
   );
 }
