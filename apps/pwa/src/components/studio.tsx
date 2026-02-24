@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIsClient } from '@/lib/ui/useIsClient';
-import { useRouter } from 'next/navigation';
 import {
+  IonBackButton,
   IonButton,
   IonButtons,
   IonContent,
@@ -43,7 +43,6 @@ export function Studio({
   initialMessages?: ChatMessage[];
   initialVersion?: number;
 }) {
-  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');
@@ -175,9 +174,7 @@ export function Studio({
         <IonToolbar>
           <IonTitle>Claw2go</IonTitle>
           <IonButtons slot="start">
-            <IonButton fill="clear" color="medium" onClick={() => router.back()}>
-              Back to Apps
-            </IonButton>
+            <IonBackButton defaultHref="/" text="Back" />
           </IonButtons>
           <IonButtons slot="end">
             <IonNote>{versionLabel}</IonNote>
