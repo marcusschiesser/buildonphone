@@ -1,0 +1,5 @@
+.overlay {
+  position: fixed;
+  z-index: 20;
+  transition: opacity 300ms ease;
+}

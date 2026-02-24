@@ -1,0 +1,16 @@
+.fillVh {
+  width: 100%;
+  height: 100dvh;
+}
+
+.centerGrid {
+  display: grid;
+  place-items: center;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}

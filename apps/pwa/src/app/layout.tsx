@@ -1,33 +1,38 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, IBM_Plex_Mono } from 'next/font/google';
+import '@ionic/react/css/core.css';
+import '@ionic/react/css/normalize.css';
+import '@ionic/react/css/structure.css';
+import '@ionic/react/css/typography.css';
+import '@ionic/react/css/padding.css';
+import '@ionic/react/css/text-alignment.css';
+import '@ionic/react/css/text-transformation.css';
+import '@ionic/react/css/flex-utils.css';
+import '@ionic/react/css/display.css';
+import '@ionic/react/css/palettes/dark.class.css';
 import './globals.css';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
-
-// display:'swap' prevents Flash of Invisible Text (FOIT) while fonts load
-const sans = Space_Grotesk({ variable: '--font-sans', subsets: ['latin'], display: 'swap' });
-const mono = IBM_Plex_Mono({ variable: '--font-mono', subsets: ['latin'], weight: ['400', '500'], display: 'swap' });
+import { IonicRoot } from '@/components/ionic-root';
 
 export const metadata: Metadata = {
   title: 'Claw2go',
   description: 'Built for the Thumb-First Developer. Powered by edge-pi.',
   manifest: '/manifest.webmanifest',
-  themeColor: '#0b0f1a',
+  themeColor: '#ffffff',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Claw2go',
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Fallback apple-touch-icon for iOS add-to-home-screen */}
-        <link rel="apple-touch-icon" href="/next.svg" />
+        <link rel="apple-touch-icon" href="/icons/icon-192-v2.png" />
       </head>
-      <body className={`${sans.variable} ${mono.variable} bg-ink text-zinc-100 antialiased`}>
-        {children}
+      <body>
+        <IonicRoot>{children}</IonicRoot>
         <ServiceWorkerRegistration />
       </body>
     </html>

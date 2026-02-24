@@ -17,6 +17,7 @@ import {
 } from '@/lib/ui/previewRuntimeError';
 import { PreviewFallbackPanel } from './fallback-panel';
 import { PreviewRuntimeErrorPanel } from './runtime-error-panel';
+import styles from './preview-frame.module.css';
 
 function htmlTemplate(code: string): string {
   return `<!doctype html>
@@ -198,7 +199,7 @@ export function PreviewFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const srcDocRef = useRef(srcDoc);
   const [runtimeError, setRuntimeError] = useState<{ srcDoc: string; payload: PreviewFixPayload } | null>(null);
-  const frameClassName = className ?? 'h-full w-full rounded-2xl border border-cyan-300/20 bg-black';
+  const frameClassName = className ?? styles.frame;
 
   useEffect(() => {
     srcDocRef.current = srcDoc;
@@ -279,7 +280,7 @@ export function PreviewFrame({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className={styles.relativeFill}>
       <iframe
         ref={iframeRef}
         title="preview"

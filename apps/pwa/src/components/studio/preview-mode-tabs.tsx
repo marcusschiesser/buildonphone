@@ -1,3 +1,5 @@
+import { IonSegment, IonSegmentButton, IonLabel } from '@ionic/react';
+
 type PreviewMode = 'preview' | 'code';
 
 export function PreviewModeTabs({
@@ -8,21 +10,13 @@ export function PreviewModeTabs({
   onChange: (mode: PreviewMode) => void;
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-black/25 p-1">
-      <button
-        type="button"
-        onClick={() => onChange('preview')}
-        className={`rounded-md px-2 py-1 text-[11px] ${mode === 'preview' ? 'bg-accent font-medium text-black' : 'text-zinc-300'}`}
-      >
-        Preview
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange('code')}
-        className={`rounded-md px-2 py-1 text-[11px] ${mode === 'code' ? 'bg-accent font-medium text-black' : 'text-zinc-300'}`}
-      >
-        Code
-      </button>
-    </div>
+    <IonSegment value={mode} onIonChange={(event) => onChange((event.detail.value as PreviewMode) ?? 'preview')}>
+      <IonSegmentButton value="preview">
+        <IonLabel>Preview</IonLabel>
+      </IonSegmentButton>
+      <IonSegmentButton value="code">
+        <IonLabel>Code</IonLabel>
+      </IonSegmentButton>
+    </IonSegment>
   );
 }

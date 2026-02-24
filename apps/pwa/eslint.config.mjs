@@ -21,9 +21,12 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     ".next/**",
+    ".next-smoke/**",
     "out/**",
     "build/**",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    "test-results/**",
+    "playwright-report/**"
   ]),
 ]);
 

@@ -1,0 +1,11 @@
+.scrollFill {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.examplePromptBtn {
+  width: 100%;
+  text-transform: none;
+}

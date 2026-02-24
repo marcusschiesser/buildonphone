@@ -1,0 +1,16 @@
+.card {
+  height: 100%;
+  margin: 0;
+}
+
+.content {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.35rem;
+}

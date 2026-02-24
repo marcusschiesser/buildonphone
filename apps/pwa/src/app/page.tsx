@@ -1,7 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useIsClient } from '@/lib/ui/useIsClient';
+import {
+  IonButtons,
+  IonCol,
+  IonContent,
+  IonGrid,
+  IonHeader,
+  IonPage,
+  IonRow,
+  IonText,
+  IonToolbar,
+} from '@ionic/react';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
@@ -11,6 +22,7 @@ import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 import { InstallButton } from '@/components/install-button';
+import { MobileTabs } from '@/components/navigation/mobile-tabs';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
@@ -33,6 +45,10 @@ export default function HomePage() {
       if (active) setApps(nextApps);
     })();
 
+    const resumeInterval = window.setInterval(() => {
+      resumeAllPending();
+    }, 2000);
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         resumeAllPending();
@@ -42,6 +58,7 @@ export default function HomePage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       active = false;
+      window.clearInterval(resumeInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -67,8 +84,6 @@ export default function HomePage() {
     };
   }, [anyBusy]);
 
-  // Stable callbacks so AppCard children don't re-render when generation state
-  // updates cause the parent to re-render (useGenerationMap / useAnyBusy).
   const renameApp = useCallback(async (appId: string, nextName: string) => {
     const updated = await localStorageAdapter.updateApp(appId, { name: nextName });
     setApps((prev) => prev.map((app) => (app.id === appId ? updated : app)));
@@ -79,50 +94,61 @@ export default function HomePage() {
     setApps((prev) => prev.filter((app) => app.id !== appId));
   }, []);
 
+  const hasDetachedGeneration = Array.from(generationMap.entries()).some(
+    ([appId, state]) => state.busy && !apps.some((app) => app.id === appId)
+  );
+
+  const mounted = useIsClient();
+
+  if (!mounted) return null;
+
   return (
-    <main className="mx-auto min-h-screen max-w-7xl p-5 lg:p-8">
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Claw2go</p>
-          <h1 className="text-3xl font-bold text-white">The Open-Source Mobile App Generator</h1>
-          <p className="mt-1 text-xs text-zinc-400">
-            Built for the Thumb-First Developer. Powered by{' '}
-            <a
-              href="https://github.com/marcusschiesser/edge-pi"
-              target="_blank"
-              rel="noreferrer"
-              className="text-cyan-300 underline"
-            >
-              edge-pi
-            </a>
-            .
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <InstallButton />
-          <Link href="/create" className="rounded-2xl bg-accent px-4 py-2 font-semibold text-black">Create App</Link>
-        </div>
-      </header>
+    <IonPage>
+      <IonHeader translucent>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonText className="ion-padding-start">
+              <strong>Claw2go</strong>
+            </IonText>
+          </IonButtons>
+          <IonButtons slot="end">
+            <InstallButton />
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
 
-      <div className="mb-6">
-        <ByokPanel />
-      </div>
+      <IonContent fullscreen>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {apps.length === 0 ? (
-          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with &quot;Create App&quot;.</div>
-        ) : (
-          apps.map((app) => (
-            <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} generating={generationMap.get(app.id)?.busy ?? false} />
-          ))
-        )}
-      </section>
+            <ByokPanel />
 
-      {Array.from(generationMap.entries()).some(([appId, state]) => state.busy && !apps.some((app) => app.id === appId)) ? (
-        <div className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-          Generation is running in the background. It will appear here when app metadata is synced.
-        </div>
-      ) : null}
-    </main>
+          <IonGrid fixed>
+            <IonRow>
+              {apps.length === 0 ? (
+                <IonCol size="12">
+                  <IonText color="medium">No apps yet. Start with &quot;Create App&quot;.</IonText>
+                </IonCol>
+              ) : (
+                apps.map((app) => (
+                  <IonCol key={app.id} size="12" sizeMd="6" sizeXl="4">
+                    <AppCard
+                      app={app}
+                      onRename={renameApp}
+                      onDelete={deleteApp}
+                      generating={generationMap.get(app.id)?.busy ?? false}
+                    />
+                  </IonCol>
+                ))
+              )}
+            </IonRow>
+          </IonGrid>
+
+          {hasDetachedGeneration ? (
+            <IonText color="tertiary" className="ion-margin-top ion-display-block">
+              Generation is running in the background. It will appear here when app metadata is synced.
+            </IonText>
+          ) : null}
+      </IonContent>
+      <MobileTabs active="home" />
+    </IonPage>
   );
 }

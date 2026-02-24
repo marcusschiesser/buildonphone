@@ -15,6 +15,8 @@ const csp = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
   // Enable gzip/brotli compression for all responses
   compress: true,
 
