@@ -7,18 +7,21 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function usePwaInstall() {
-  const isStandaloneOnLoad =
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true));
+function isRunningStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true)
+  );
+}
 
+export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(isStandaloneOnLoad);
+  // Lazy initializer runs only on the client, so SSR always returns false (no hydration mismatch)
+  // and we avoid calling setState synchronously inside an effect.
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => isRunningStandalone());
 
   useEffect(() => {
-    if (isInstalled) return;
-
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -36,7 +39,7 @@ export function usePwaInstall() {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', onAppInstalled);
     };
-  }, [isInstalled]);
+  }, []);
 
   const install = async () => {
     if (!deferredPrompt) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
@@ -67,15 +67,17 @@ export default function HomePage() {
     };
   }, [anyBusy]);
 
-  const renameApp = async (appId: string, nextName: string) => {
+  // Stable callbacks so AppCard children don't re-render when generation state
+  // updates cause the parent to re-render (useGenerationMap / useAnyBusy).
+  const renameApp = useCallback(async (appId: string, nextName: string) => {
     const updated = await localStorageAdapter.updateApp(appId, { name: nextName });
     setApps((prev) => prev.map((app) => (app.id === appId ? updated : app)));
-  };
+  }, []);
 
-  const deleteApp = async (appId: string) => {
+  const deleteApp = useCallback(async (appId: string) => {
     await localStorageAdapter.deleteApp(appId);
     setApps((prev) => prev.filter((app) => app.id !== appId));
-  };
+  }, []);
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl p-5 lg:p-8">
@@ -108,7 +110,7 @@ export default function HomePage() {
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {apps.length === 0 ? (
-          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with “Create App”.</div>
+          <div className="rounded-3xl border border-zinc-700 bg-panel/70 p-6 text-zinc-300">No apps yet. Start with &quot;Create App&quot;.</div>
         ) : (
           apps.map((app) => (
             <AppCard key={app.id} app={app} onRename={renameApp} onDelete={deleteApp} generating={generationMap.get(app.id)?.busy ?? false} />
