@@ -17,12 +17,12 @@ self.addEventListener('install', (event) => {
     caches
       .open(SHELL_CACHE)
       .then((cache) => cache.addAll(APP_SHELL_URLS))
-      .then(() => self.skipWaiting())
   );
 });
 
 // ── Activate: remove stale caches ───────────────────────────────────────────
 self.addEventListener('activate', (event) => {
+  // Do not force takeover; letting activation happen naturally avoids breaking open tabs.
   const currentCaches = new Set([SHELL_CACHE, STATIC_CACHE, ASSETS_CACHE]);
   event.waitUntil(
     caches
@@ -30,7 +30,6 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => !currentCaches.has(k)).map((k) => caches.delete(k)))
       )
-      .then(() => self.clients.claim())
   );
 });
 
@@ -41,6 +40,8 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
+  // Cache only idempotent GET requests
+  if (request.method !== 'GET') return;
 
   // Never intercept API calls — always go to the network
   if (url.pathname.startsWith('/api/')) return;
@@ -71,21 +72,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Next.js chunked JS/CSS that isn't under /_next/static/ — stale-while-revalidate
-  if (url.pathname.startsWith('/_next/')) {
-    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
-    return;
-  }
 });
 
 // ── Strategy helpers ─────────────────────────────────────────────────────────
 
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
   if (cached) return cached;
   const response = await fetch(request);
   if (response.ok) {
-    const cache = await caches.open(cacheName);
     cache.put(request, response.clone());
   }
   return response;
