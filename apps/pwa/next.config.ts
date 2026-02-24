@@ -27,9 +27,9 @@ const nextConfig: NextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
-      // Moderate cache for public assets (SVGs, manifest, default app sources)
+      // Moderate cache for public static assets at root level
       {
-        source: '/(:path((?!api).*)\\.(?:svg|png|jpg|jpeg|webp|ico|woff2?))',
+        source: '/:file.:ext(svg|png|jpg|jpeg|webp|ico|woff2|woff)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
         ],
