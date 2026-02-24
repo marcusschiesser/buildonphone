@@ -196,9 +196,7 @@ export function Studio({
       </IonHeader>
 
       <IonContent fullscreen>
-        <div className={`page-shell ion-padding studio-shell ${styles.layout}`}>
           {activeTab === 'chat' ? (
-            <div className={styles.chatPane}>
               <IonList inset className={styles.scrollFill}>
                 {threadMessages.length === 0 ? (
                   <IonItem lines="inset">
@@ -228,19 +226,13 @@ export function Studio({
                   <StudioMessage key={m.id} message={m} />
                 ))}
               </IonList>
-            </div>
           ) : activeTab === 'preview' ? (
-            <div className={styles.cardFlex}>
               <PreviewFrame files={files} onFixError={onPreviewFix} />
-            </div>
           ) : (
-            <div className={styles.cardFlex}>
               <IonItem lines="inset">
                 <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
               </IonItem>
-            </div>
           )}
-        </div>
       </IonContent>
       <MobileTabs
         active="studio"
