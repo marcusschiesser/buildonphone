@@ -5,18 +5,15 @@ import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonBackButton,
   IonButton,
-  IonButtons,
   IonContent,
   IonHeader,
   IonItem,
   IonLabel,
   IonList,
-  IonNote,
   IonPage,
   IonSegment,
   IonSegmentButton,
   IonTextarea,
-  IonTitle,
   IonToolbar,
 } from '@ionic/react';
 import type { ChatMessage, SuApp } from '@/types';
@@ -29,6 +26,7 @@ import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeE
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
+import { AppToolbar } from './navigation/app-toolbar';
 import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
 
@@ -158,7 +156,6 @@ export function Studio({
     });
   };
 
-  const versionLabel = useMemo(() => (version > 0 ? `v${version}` : 'No build yet'), [version]);
   const threadMessages = useMemo(
     () => getStudioThreadMessages(messages, busy, status, streamedText, currentToolCall),
     [busy, messages, status, streamedText, currentToolCall]
@@ -171,15 +168,7 @@ export function Studio({
   return (
     <IonPage>
       <IonHeader translucent>
-        <IonToolbar>
-          <IonTitle>Claw2go</IonTitle>
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/" text="Back" />
-          </IonButtons>
-          <IonButtons slot="end">
-            <IonNote>{versionLabel}</IonNote>
-          </IonButtons>
-        </IonToolbar>
+        <AppToolbar start={<IonBackButton defaultHref="/" text="Back" />} />
         <IonToolbar>
           <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview' | 'code') ?? 'chat')}>
             <IonSegmentButton value="chat">

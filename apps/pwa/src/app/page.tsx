@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import {
-  IonButtons,
   IonCol,
   IonContent,
   IonGrid,
@@ -11,7 +10,6 @@ import {
   IonPage,
   IonRow,
   IonText,
-  IonToolbar,
 } from '@ionic/react';
 import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
@@ -22,6 +20,7 @@ import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
 import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 import { InstallButton } from '@/components/install-button';
+import { AppToolbar } from '@/components/navigation/app-toolbar';
 import { MobileTabs } from '@/components/navigation/mobile-tabs';
 
 export default function HomePage() {
@@ -105,16 +104,7 @@ export default function HomePage() {
   return (
     <IonPage>
       <IonHeader translucent>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonText className="ion-padding-start">
-              <strong>Claw2go</strong>
-            </IonText>
-          </IonButtons>
-          <IonButtons slot="end">
-            <InstallButton />
-          </IonButtons>
-        </IonToolbar>
+        <AppToolbar end={<InstallButton />} />
       </IonHeader>
 
       <IonContent fullscreen>

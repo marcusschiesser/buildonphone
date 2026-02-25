@@ -41,6 +41,26 @@ ion-content {
   background: var(--ion-background-color);
 }
 
+ion-toolbar.app-toolbar {
+  position: relative;
+}
+
+ion-toolbar.app-toolbar ion-buttons {
+  position: relative;
+  z-index: 2;
+}
+
+ion-toolbar.app-toolbar .app-toolbar__title {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  pointer-events: none;
+  padding-inline: 72px;
+  white-space: nowrap;
+}
+
 @media (min-width: 960px) {
   .mobile-tabs-shell {
     display: none;

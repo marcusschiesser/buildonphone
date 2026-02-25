@@ -10,7 +10,7 @@ export function InstallButton() {
 
   return (
     <IonButton fill="outline" color="secondary" onClick={install}>
-      Install Claw2Go
+      Install
     </IonButton>
   );
 }
