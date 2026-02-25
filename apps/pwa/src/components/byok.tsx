@@ -9,7 +9,7 @@ export function ByokPanel() {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('');
   const [hasKey, setHasKey] = useState(false);
-  const [serverManaged, setServerManaged] = useState(false);
+  const [serverManaged, setServerManaged] = useState<boolean | null>(null);
 
   useEffect(() => {
     void Promise.all([getServerConfig(), hasAnthropicKey()]).then(([{ hasServerKey }, present]) => {
@@ -19,7 +19,7 @@ export function ByokPanel() {
     });
   }, []);
 
-  if (serverManaged) return null;
+  if (serverManaged === null || serverManaged) return null;
 
   return (
     <IonCard>

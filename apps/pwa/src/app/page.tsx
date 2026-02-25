@@ -25,6 +25,7 @@ import { MobileTabs } from '@/components/navigation/mobile-tabs';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
+  const [appsLoaded, setAppsLoaded] = useState(false);
   const generationMap = useGenerationMap();
   const anyBusy = useAnyBusy();
   const wasBusyRef = useRef(false);
@@ -40,8 +41,13 @@ export default function HomePage() {
     void (async () => {
       cleanupCompletedGenerations();
       resumeAllPending();
-      const nextApps = await ensureDefaultAppsSeededClient();
-      if (active) setApps(nextApps);
+      try {
+        const nextApps = await ensureDefaultAppsSeededClient();
+        if (!active) return;
+        setApps(nextApps);
+      } finally {
+        if (active) setAppsLoaded(true);
+      }
     })();
 
     const resumeInterval = window.setInterval(() => {
@@ -113,7 +119,7 @@ export default function HomePage() {
 
           <IonGrid fixed>
             <IonRow>
-              {apps.length === 0 ? (
+              {appsLoaded && apps.length === 0 ? (
                 <IonCol size="12">
                   <IonText color="medium">No apps yet. Start with &quot;Create App&quot;.</IonText>
                 </IonCol>
