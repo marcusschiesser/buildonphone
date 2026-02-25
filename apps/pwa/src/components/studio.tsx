@@ -219,7 +219,7 @@ export function Studio({
       </IonContent>
       <IonFooter>
         {activeTab === 'chat' ? (
-          <IonToolbar className="mobile-tabs-extra">
+          <IonToolbar >
             <IonItem lines="inset">
               <IonTextarea
                 value={input}

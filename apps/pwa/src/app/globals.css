@@ -20,16 +20,6 @@ ion-app {
   max-width: 460px;
 }
 
-.studio-shell {
-  height: calc(100dvh - 72px - var(--ion-safe-area-top) - 56px);
-}
-
-.mobile-tabs-extra {
-  border-top: 1px solid var(--ion-border-color);
-  padding: 8px 12px;
-  background: var(--ion-background-color);
-}
-
 ion-toolbar.app-toolbar {
   position: relative;
 }
@@ -123,10 +113,4 @@ ion-toolbar.app-toolbar .app-toolbar__title {
 
 .opacity-35 {
   opacity: 0.35;
-}
-
-@media (min-width: 960px) {
-  .studio-shell {
-    height: calc(100dvh - 88px - var(--ion-safe-area-top));
-  }
 }
