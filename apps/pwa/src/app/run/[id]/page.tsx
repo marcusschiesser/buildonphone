@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import { useParams } from 'next/navigation';
 import { IonContent, IonPage } from '@ionic/react';
@@ -10,13 +10,14 @@ import { RunBackOverlay } from '@/components/run-back-overlay';
 import styles from './page.module.css';
 
 export default function RunPage() {
-  const { id } = useParams<{ id: string }>();  const [files, setFiles] = useState<Record<string, string>>({
+  const { id } = useParams<{ id: string }>();
+  const [files, setFiles] = useState<Record<string, string>>({
     'app.jsx': '',
   });
 
-  useEffect(() => {
+  const refreshFiles = useCallback(async () => {
     if (!id) return;
-    void (async () => {
+    try {
       const app = await localStorageAdapter.getApp(id);
       if (!app) {
         setFiles({
@@ -26,8 +27,34 @@ export default function RunPage() {
       }
       const nextFiles = await localStorageAdapter.listArtifacts(id, app.currentVersion);
       setFiles(nextFiles);
-    })();
+    } catch {
+      // Ignore transient read errors and keep the last known preview files.
+    }
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const initialLoad = window.setTimeout(() => {
+      void refreshFiles();
+    }, 0);
+
+    const interval = window.setInterval(() => {
+      void refreshFiles();
+    }, 1500);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshFiles();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [id, refreshFiles]);
 
   const mounted = useIsClient();
 

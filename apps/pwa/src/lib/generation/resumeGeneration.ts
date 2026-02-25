@@ -1,6 +1,6 @@
 'use client';
 
-import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
+import { patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { clearPersistedJob, getPersistedJob } from './persistJob';
 import { pollGenerationJob, StaleJobError } from './pollJob';
 import { applyCompletedJob } from './startGeneration';
@@ -16,11 +16,6 @@ import { getServerConfig } from '@/lib/server-config';
 export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   const persisted = getPersistedJob(appId);
   if (!persisted) return;
-
-  // Already being tracked in-memory – another tab or the original polling is
-  // still live, nothing to do.
-  const existing = getGeneration(appId);
-  if (existing?.busy) return;
 
   let res: Response;
   let jobTimeoutMs: number;

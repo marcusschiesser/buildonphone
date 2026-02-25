@@ -236,11 +236,12 @@ export async function startGeneration(params: {
       // The error occurred during polling, after the server-side job was
       // already created.  The job may still finish successfully – keep the
       // persisted entry so resumeGenerationIfNeeded can re-attach on the next
-      // page visit.  Do NOT write a permanent error message to the chat.
-      setGenerationResult(params.appId, {
-        ok: false,
-        error: message,
-        completedAt: Date.now(),
+      // page visit.  Do NOT write a permanent error message to the chat and
+      // keep the UI in a resumable busy state so actions don't race artifacts.
+      patchGeneration(params.appId, {
+        busy: true,
+        phase: 'running',
+        status: 'Reconnecting to generation job...',
       });
     } else {
       // Error before job creation, or a stale/stuck job – there is nothing to

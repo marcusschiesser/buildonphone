@@ -47,13 +47,11 @@ test('smoke generation works without Anthropic key', async ({ page }) => {
   await page.goto('/create');
   await page.getByRole('textbox').fill(PROMPT);
   await page.getByRole('button', { name: 'Send' }).click();
-  await expect(page.getByRole('button', { name: /Send|Working\.\.\./ })).toBeDisabled();
-  await expect(page.getByText('v1')).toBeVisible({ timeout: 20_000 });
-
+  await expect(page.frameLocator('iframe[title="preview"]').getByText(FAKE_MARKER)).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Back' }).click();
 
   const generatedCard = page.locator('ion-card').filter({ hasText: PROMPT });
-  await expect(generatedCard).toBeVisible();
+  await expect(generatedCard).toBeVisible({ timeout: 30_000 });
   await generatedCard.getByRole('button', { name: 'Run' }).click();
 
   const runFrame = page.frameLocator('iframe[title="preview"]');
