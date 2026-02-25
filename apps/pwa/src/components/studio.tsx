@@ -45,7 +45,7 @@ export function Studio({
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'code'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
   const notificationPermissionRequestedRef = useRef(false);
   const gen = useGeneration(appId);
@@ -92,6 +92,7 @@ export function Studio({
         const nextFiles = resolvedVersion > 0 ? await localStorageAdapter.listArtifacts(appId, resolvedVersion) : {};
         if (cancelled) return;
         setFiles(nextFiles);
+        console.debug('[Studio] Generated files', nextFiles);
         setActiveTab('preview');
       }
 
@@ -170,15 +171,12 @@ export function Studio({
       <IonHeader translucent>
         <AppToolbar start={<IonBackButton defaultHref="/" text="Back" />} />
         <IonToolbar>
-          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview' | 'code') ?? 'chat')}>
+          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
             <IonSegmentButton value="chat">
               <IonLabel>Chat</IonLabel>
             </IonSegmentButton>
             <IonSegmentButton value="preview">
               <IonLabel>Preview</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="code">
-              <IonLabel>Code</IonLabel>
             </IonSegmentButton>
           </IonSegment>
         </IonToolbar>
@@ -215,12 +213,8 @@ export function Studio({
                   <StudioMessage key={m.id} message={m} />
                 ))}
               </IonList>
-          ) : activeTab === 'preview' ? (
-              <PreviewFrame files={files} onFixError={onPreviewFix} />
           ) : (
-              <IonItem lines="inset">
-                <IonTextarea autoGrow readonly value={files['app.jsx']?.trim() || '// No app.jsx generated yet.'} />
-              </IonItem>
+              <PreviewFrame files={files} onFixError={onPreviewFix} />
           )}
       </IonContent>
       <MobileTabs
