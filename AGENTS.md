@@ -121,6 +121,7 @@ Fix all reported errors before committing. Do **not** disable lint rules or add 
 - Do not extract trivial one-liner helpers into separate files; keep simple logic inline and only extract when it improves reuse, testability, or readability.
 - Organize feature UI in subfolders under `apps/pwa/src/components/**` (for example `components/preview/*`) instead of growing a flat components directory.
 - Use `lucide-react` for product UI icons; prefer icon-only controls only when they include `aria-label` (and `title` when appropriate).
+- Prefer Ionic-native layout primitives (`IonGrid`, `IonRow`, `IonCol`, Ionic spacing utilities) for responsive page/component structure before introducing custom CSS layout systems.
 
 ## 11) Common Failure Modes and Fixes
 

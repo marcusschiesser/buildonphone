@@ -61,6 +61,10 @@ ion-toolbar.app-toolbar .app-toolbar__title {
   white-space: nowrap;
 }
 
+.app-card-actions-row {
+  flex-wrap: nowrap;
+}
+
 @media (min-width: 960px) {
   .mobile-tabs-shell {
     display: none;

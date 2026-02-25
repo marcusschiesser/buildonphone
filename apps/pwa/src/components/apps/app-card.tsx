@@ -11,10 +11,13 @@ import {
   IonCardHeader,
   IonCardSubtitle,
   IonCardTitle,
+  IonCol,
+  IonGrid,
   IonInput,
   IonItem,
   IonLabel,
   IonNote,
+  IonRow,
   IonText,
 } from '@ionic/react';
 
@@ -99,33 +102,54 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
           <IonNote color="medium">{app.description || 'No description'}</IonNote>
         )}
 
-        <div className="ion-margin-top">
+        <IonGrid className="ion-no-padding ion-margin-top">
+          <IonRow className="app-card-actions-row">
           {isRenaming ? (
             <>
-              <IonButton fill="clear" color="medium" disabled={busy} onClick={cancelRename}>
-                Cancel
-              </IonButton>
-              <IonButton fill="outline" disabled={busy} onClick={() => void saveRename()}>
-                Save
-              </IonButton>
+              <IonCol size="6">
+                <IonButton expand="block" size="small" fill="clear" color="medium" disabled={busy} onClick={cancelRename}>
+                  Cancel
+                </IonButton>
+              </IonCol>
+              <IonCol size="6">
+                <IonButton expand="block" size="small" fill="outline" disabled={busy} onClick={() => void saveRename()}>
+                  Save
+                </IonButton>
+              </IonCol>
             </>
           ) : (
             <>
-              <IonButton fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
-                Run
-              </IonButton>
-              <IonButton color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
-                Edit
-              </IonButton>
-              <IonButton fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
-                Rename
-              </IonButton>
-              <IonButton fill="outline" color="danger" disabled={generating} onClick={() => void onDelete(app.id)}>
-                Delete
-              </IonButton>
+              <IonCol size="3">
+                <IonButton expand="block" size="small" fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
+                  Run
+                </IonButton>
+              </IonCol>
+              <IonCol size="3">
+                <IonButton expand="block" size="small" color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
+                  Edit
+                </IonButton>
+              </IonCol>
+              <IonCol size="3">
+                <IonButton expand="block" size="small" fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
+                  Rename
+                </IonButton>
+              </IonCol>
+              <IonCol size="3">
+                <IonButton
+                  expand="block"
+                  size="small"
+                  fill="outline"
+                  color="danger"
+                  disabled={generating}
+                  onClick={() => void onDelete(app.id)}
+                >
+                  Delete
+                </IonButton>
+              </IonCol>
             </>
           )}
-        </div>
+          </IonRow>
+        </IonGrid>
       </IonCardContent>
     </IonCard>
   );
