@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { ChatMessage, StorageAdapter, SuApp } from '@/types';
 import { safeRandomId } from '@/lib/id';
+import { sortChatMessages } from './chatMessageSort';
 
 interface ArtifactRow {
   id: string;
@@ -73,7 +74,8 @@ export const localStorageAdapter: StorageAdapter = {
   },
 
   async getChatHistory(appId) {
-    return db.messages.where('appId').equals(appId).sortBy('createdAt');
+    const messages = await db.messages.where('appId').equals(appId).toArray();
+    return sortChatMessages(messages);
   },
 
   async appendMessage(appId, msg) {
