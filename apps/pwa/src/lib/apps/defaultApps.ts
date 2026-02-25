@@ -74,9 +74,39 @@ export const DEFAULT_APP_SEEDS: DefaultAppSeed[] = [
     },
     sourcePath: "/default-apps/habit-tracker.jsx",
     userMessage:
-      "Make a mobile habit tracker focused on streaks and speed. Start with a few sensible default habits, allow users to add and delete habits, and let them increment streaks with one tap. Show a clear summary metric (like total streak points) and keep the UI lightweight and touch-friendly. Persist habits in localStorage so data survives page refresh and app reopen.",
-    assistantMessage:
-      "I created `app.jsx` with starter habits, add-habit input, one-tap streak updates, and a summarized total streak score.",
+      "Make a habit tracker focused on streaks. Allow users to add and delete habits, and let them increment streaks with one tap. Add two sensible default habits. Show a clear summary metric (like total streak points) and keep the UI lightweight and touch-friendly. Persist habits across app restarts.",
+    assistantMessage: `Here's what was built — a polished, full-featured **StreakTrack** habit tracker:
+
+---
+
+### Features
+
+**Core Habit Management**
+- ✅ Two default habits pre-loaded: *Morning Meditation* 🧘 and *Daily Exercise* 🏃
+- ✅ Add habits with a custom name, emoji picker (12 options), and color picker (8 gradients)
+- ✅ Delete habits via the trash icon on each card
+
+**Streak Logic**
+- 🔥 Tap the **+** button on a card to mark it done today — streak increments by 1
+- 📅 Streak only continues if you checked in **yesterday** too; missing a day resets to 1
+- 💤 Shows a sleeping emoji instead of fire when streak is 0
+- Buttons become a green checkmark once a habit is done for the day (no double-counting)
+
+**Summary Bar**
+- **Total Streak Points** — sum of all active streaks (your headline metric)
+- **Done Today** — X/N habits completed
+- **Longest Streak** — highest single streak across all habits
+- Animated gradient **progress bar** showing today's completion percentage
+
+**UX Polish**
+- 🎉 Celebratory banner when all habits are done for the day
+- Confetti burst animation on check-in
+- Ambient gradient background glow
+- Touch-friendly large tap targets throughout
+- Dark, premium-feeling UI with gradient accents
+
+**Persistence**
+- All habits, streaks, and check-in dates saved to \`localStorage\` — survive page reloads`,
   },
 ];
 
