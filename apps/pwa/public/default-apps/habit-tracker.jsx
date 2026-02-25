@@ -364,7 +364,7 @@ function SummaryBar({ habits }) {
       {habits.length > 0 && (
         <div className="mt-4">
           <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-            <span>Today's progress</span>
+            <span>Today&apos;s progress</span>
             <span className="font-semibold text-white">{completionPct}%</span>
           </div>
           <div className="h-2 bg-gray-700 rounded-full overflow-hidden">

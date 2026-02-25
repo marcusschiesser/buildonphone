@@ -5,6 +5,7 @@ import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonCol,
   IonContent,
+  IonFooter,
   IonGrid,
   IonHeader,
   IonPage,
@@ -113,7 +114,7 @@ export default function HomePage() {
         <AppToolbar end={<InstallButton />} />
       </IonHeader>
 
-      <IonContent fullscreen>
+      <IonContent>
 
             <ByokPanel />
 
@@ -144,7 +145,9 @@ export default function HomePage() {
             </IonText>
           ) : null}
       </IonContent>
-      <MobileTabs active="home" />
+      <IonFooter>
+        <MobileTabs active="home" />
+      </IonFooter>
     </IonPage>
   );
 }

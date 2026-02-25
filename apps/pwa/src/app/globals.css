@@ -4,8 +4,7 @@
 
 html,
 body,
-ion-app,
-ion-content {
+ion-app {
   margin: 0;
   width: 100%;
   min-height: 100%;
@@ -23,16 +22,6 @@ ion-content {
 
 .studio-shell {
   height: calc(100dvh - 72px - var(--ion-safe-area-top) - 56px);
-}
-
-.mobile-tabs-shell {
-  display: block;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  padding-bottom: var(--ion-safe-area-bottom);
 }
 
 .mobile-tabs-extra {

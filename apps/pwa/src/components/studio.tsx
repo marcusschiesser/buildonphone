@@ -6,6 +6,7 @@ import {
   IonBackButton,
   IonButton,
   IonContent,
+  IonFooter,
   IonHeader,
   IonItem,
   IonLabel,
@@ -181,9 +182,9 @@ export function Studio({
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen>
+      <IonContent >
           {activeTab === 'chat' ? (
-              <IonList inset className={styles.scrollFill}>
+              <IonList inset >
                 {threadMessages.length === 0 ? (
                   <IonItem lines="inset">
                     <IonLabel>
@@ -216,10 +217,9 @@ export function Studio({
               <PreviewFrame files={files} onFixError={onPreviewFix} />
           )}
       </IonContent>
-      <MobileTabs
-        active="studio"
-        topContent={
-          activeTab === 'chat' ? (
+      <IonFooter>
+        {activeTab === 'chat' ? (
+          <IonToolbar className="mobile-tabs-extra">
             <IonItem lines="inset">
               <IonTextarea
                 value={input}
@@ -231,9 +231,10 @@ export function Studio({
                 {busy ? 'Working...' : 'Send'}
               </IonButton>
             </IonItem>
-          ) : null
-        }
-      />
+          </IonToolbar>
+        ) : null}
+        <MobileTabs active="studio" />
+      </IonFooter>
     </IonPage>
   );
 }
