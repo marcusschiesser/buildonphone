@@ -59,8 +59,25 @@ export const DEFAULT_APP_SEEDS: DefaultAppSeed[] = [
     sourcePath: "/default-apps/nutrition-scanner.jsx",
     userMessage:
       "Make an app to scan the nutrition label (macros and ingredients list) of any food packaging using the camera. The label could be in any language. Use AI to extract calories, protein, fat, carbs and each ingredient and translate them to English. While doing so show a funny progress bar. Then display to the user an aggregated health score together with a funny witty verdict of the health value of the food from the point of view of Bryan Johnson. Below that show calories, protein, fat, carbs, and below that the ingredient list. Next to each ingredient show a health score from 0-10, 10 being the best. Below each ingredient explain in one sentence in easy language what it is.",
-    assistantMessage:
-      "I created `app.jsx` with live camera capture, animated analysis progress, AI extraction for macros and ingredients, ingredient-level health scoring, and a Bryan Johnson verdict with an overall health score.",
+    assistantMessage: `Here's what the app does, end to end:
+
+**Scanning flow**
+- Taps **Start Scanning** → rear camera opens with a purple viewfinder overlay
+- Taps **📸 Capture** → image is downscaled to ≤1024px & JPEG-compressed before sending
+
+**AI analysis**
+- A structured schema extracts \`overall_score\`, \`bryan_verdict\`, macros (\`calories\`, \`protein_g\`, \`fat_g\`, \`carbs_g\`), and an \`ingredients\` array (name, 0–10 score, plain-English description)
+- Any language on the label is automatically translated to English
+
+**Funny progress bar**
+- Animated gradient bar fills while the AI works
+- Rotates through 8 absurd Bryan-Johnson-flavored status messages like *"Consulting Bryan Johnson's 200-page morning protocol…"* and *"Checking if any ingredient was touched by a mortal…"*
+
+**Results screen**
+- **Overall health score** shown as a circular arc gauge (green/yellow/orange/red) + Bryan Johnson's witty 2–4 sentence roast of the food
+- **Macro row** — Calories 🔥 / Protein 💪 / Fat 🧈 / Carbs 🍞 cards
+- **Ingredient list** — each ingredient shows its 0–10 score (color-coded), a mini bar, and a plain one-sentence explanation of what it actually is
+- **Scan Another Label** resets everything and reopens the camera`,
   },
   {
     app: {

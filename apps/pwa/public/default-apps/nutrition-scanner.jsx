@@ -1,422 +1,610 @@
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useCallback } = React;
 
-function App() {
-  const [stream, setStream] = useState(null);
-  const [capturing, setCapturing] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [progressMessage, setProgressMessage] = useState('');
-  
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const canvasRef = useRef(null);
+// ── helpers ──────────────────────────────────────────────────────────────────
 
-  const funnyProgressMessages = [
-    "Squinting at tiny text...",
-    "Decoding food industry hieroglyphics...",
-    "Consulting Bryan Johnson's biomolecule database...",
-    "Calculating how much this will age you...",
-    "Reading ingredients smaller than atoms...",
-    "Translating corporate food-speak to English...",
-    "Measuring deviation from Blueprint protocol...",
-    "Scanning for youth-sucking compounds...",
-    "Checking if this passes the longevity test...",
-    "Computing biological age impact..."
-  ];
+function downscaleAndEncode(videoEl, maxDim = 1024, quality = 0.72) {
+  const vw = videoEl.videoWidth;
+  const vh = videoEl.videoHeight;
+  if (!vw || !vh) return null;
+  const scale = Math.min(1, maxDim / Math.max(vw, vh));
+  const w = Math.round(vw * scale);
+  const h = Math.round(vh * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(videoEl, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", quality);
+}
 
-  useEffect(() => {
-    startCamera();
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+const FUNNY_STEPS = [
+  "Consulting Bryan Johnson's 200-page morning protocol…",
+  "Scanning for suspicious additives lurking in the shadows…",
+  "Running ingredient list through anti-aging database…",
+  "Cross-referencing with longevity manifesto…",
+  "Calculating probability of immortality…",
+  "Checking if any ingredient was touched by a mortal…",
+  "Translating label to English (and then to Biohacker)…",
+  "Almost done — brewing some methylated B-vitamins…",
+];
 
-  useEffect(() => {
-    if (stream && videoRef.current && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(err => {
-        console.error('Video play error:', err);
-        setError('Could not start video playback');
-      });
-    }
-  }, [stream]);
+const SCORE_COLOR = (s) => {
+  if (s >= 8) return "text-emerald-400";
+  if (s >= 5) return "text-yellow-400";
+  if (s >= 3) return "text-orange-400";
+  return "text-red-500";
+};
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
-      streamRef.current = mediaStream;
-      setStream(mediaStream);
-      setError(null);
-    } catch (err) {
-      setError('Camera access denied. Please allow camera permissions.');
-      console.error('Camera error:', err);
-    }
-  };
+const SCORE_BG = (s) => {
+  if (s >= 8) return "bg-emerald-500";
+  if (s >= 5) return "bg-yellow-500";
+  if (s >= 3) return "bg-orange-500";
+  return "bg-red-500";
+};
 
-  const captureAndAnalyze = async () => {
-    if (!videoRef.current || !canvasRef.current) {
-      setError('Video not ready. Please try again.');
-      return;
-    }
+const MACRO_ICONS = {
+  calories: "🔥",
+  protein: "💪",
+  fat: "🧈",
+  carbs: "🍞",
+};
 
-    const video = videoRef.current;
-    
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      setError('Camera not ready yet. Please wait a moment and try again.');
-      return;
-    }
+// ── ProgressBar ───────────────────────────────────────────────────────────────
 
-    setCapturing(true);
-    setError(null);
-
-    const canvas = canvasRef.current;
-    const maxDimension = 1024;
-    let width = video.videoWidth;
-    let height = video.videoHeight;
-
-    if (width > height) {
-      if (width > maxDimension) {
-        height = (height * maxDimension) / width;
-        width = maxDimension;
-      }
-    } else {
-      if (height > maxDimension) {
-        width = (width * maxDimension) / height;
-        height = maxDimension;
-      }
-    }
-
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, width, height);
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-    setCapturing(false);
-    setAnalyzing(true);
-    setProgress(0);
-    setResult(null);
-
-    // Animate progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
-      });
-      setProgressMessage(funnyProgressMessages[Math.floor(Math.random() * funnyProgressMessages.length)]);
-    }, 800);
-
-    try {
-      const schema = {
-        type: 'object',
-        properties: {
-          calories: { type: 'number', nullable: true },
-          protein: { type: 'number', nullable: true },
-          fat: { type: 'number', nullable: true },
-          carbs: { type: 'number', nullable: true },
-          ingredients: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-                healthScore: { type: 'number' },
-                explanation: { type: 'string' }
-              },
-              required: ['name', 'healthScore', 'explanation'],
-              additionalProperties: false
-            }
-          },
-          overallHealthScore: { type: 'number' },
-          bryanJohnsonVerdict: { type: 'string' }
-        },
-        required: ['calories', 'protein', 'fat', 'carbs', 'ingredients', 'overallHealthScore', 'bryanJohnsonVerdict'],
-        additionalProperties: false
-      };
-
-      const { partialOutputStream } = await window.__CLAW2GO_AI__.streamText({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Analyze this nutrition label image. The label could be in any language - translate everything to English.
-
-Extract:
-1. Macros (per serving or per 100g): calories, protein (g), fat (g), carbs (g)
-2. Complete ingredients list
-3. For each ingredient:
-   - Translate name to English
-   - Give health score 0-10 (10=best, superfood; 0=worst, toxic)
-   - One sentence explanation in simple language about what it is
-4. Calculate overall health score 0-100 based on macros and ingredients
-5. Write a funny, witty verdict from Bryan Johnson's perspective about this food's health value. He's obsessed with longevity, biohacking, and reversing aging. Make it entertaining but informative. Reference his extreme protocols if relevant.
-
-If you cannot read the label clearly, make your best effort with visible text.`
-              },
-              {
-                type: 'image',
-                image: dataUrl
-              }
-            ]
-          }
-        ],
-        output: {
-          type: 'object',
-          schema: schema
-        }
-      });
-
-      let finalResult = null;
-
-      for await (const partial of partialOutputStream) {
-        if (partial) {
-          finalResult = partial;
-        }
-      }
-
-      clearInterval(progressInterval);
-      setProgress(100);
-      setProgressMessage('Analysis complete!');
-
-      setTimeout(() => {
-        setAnalyzing(false);
-        if (finalResult) {
-          setResult(finalResult);
-        } else {
-          setError('Could not extract nutrition information from the image.');
-        }
-      }, 500);
-
-    } catch (err) {
-      clearInterval(progressInterval);
-      setAnalyzing(false);
-      setError(err.message || 'Failed to analyze image. Please try again.');
-      console.error('Analysis error:', err);
-    }
-  };
-
-  const reset = () => {
-    setResult(null);
-    setError(null);
-    setProgress(0);
-    setProgressMessage('');
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 8) return 'text-green-500';
-    if (score >= 5) return 'text-yellow-500';
-    return 'text-red-500';
-  };
-
-  const getScoreBg = (score) => {
-    if (score >= 8) return 'bg-green-500';
-    if (score >= 5) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getOverallScoreColor = (score) => {
-    if (score >= 70) return 'text-green-400';
-    if (score >= 40) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
+function FunnyProgressBar({ progress, step }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🔬 Nutrition Label Scanner
-          </h1>
-          <p className="text-gray-300 text-lg">
-            Scan any food label • AI-powered analysis • Bryan Johnson approved (or not)
-          </p>
-        </header>
-
-        {!result && (
-          <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl border border-purple-500/20">
-            {error && (
-              <div className="mb-4 p-4 bg-red-500/20 border border-red-500 rounded-lg text-red-200">
-                {error}
-              </div>
-            )}
-
-            <div className="relative rounded-xl overflow-hidden bg-black mb-6" style={{ aspectRatio: '4/3' }}>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              {capturing && (
-                <div className="absolute inset-0 bg-white animate-pulse opacity-50" />
-              )}
-              <div className="absolute inset-0 border-4 border-dashed border-purple-400/50 m-8 rounded-lg pointer-events-none" />
-            </div>
-
-            <canvas ref={canvasRef} className="hidden" />
-
-            {analyzing ? (
-              <div className="space-y-4">
-                <div className="bg-slate-700 rounded-full h-8 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 transition-all duration-300 flex items-center justify-center text-sm font-bold animate-gradient"
-                    style={{ width: `${progress}%` }}
-                  >
-                    {Math.round(progress)}%
-                  </div>
-                </div>
-                <p className="text-center text-purple-300 font-medium animate-pulse">
-                  {progressMessage}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={captureAndAnalyze}
-                disabled={!stream}
-                className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg hover:shadow-purple-500/50 transition-all transform hover:scale-105 active:scale-95"
-              >
-                📸 Scan Nutrition Label
-              </button>
-            )}
-          </div>
-        )}
-
-        {result && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Overall Health Score & Verdict */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-purple-900/40 backdrop-blur rounded-2xl p-8 shadow-2xl border border-purple-500/30">
-              <div className="text-center mb-6">
-                <div className={`text-8xl font-black mb-2 ${getOverallScoreColor(result.overallHealthScore)}`}>
-                  {result.overallHealthScore}
-                  <span className="text-4xl">/100</span>
-                </div>
-                <div className="text-gray-400 uppercase tracking-wider text-sm font-semibold">
-                  Health Score
-                </div>
-              </div>
-              
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-purple-400/20">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">🧬</div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-purple-300 font-bold mb-2">
-                      Bryan Johnson&apos;s Verdict:
-                    </div>
-                    <p className="text-gray-200 text-lg leading-relaxed">
-                      {result.bryanJohnsonVerdict}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Macros */}
-            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-xl border border-purple-500/20">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <span>📊</span> Macronutrients
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-xl p-4 border border-orange-500/30">
-                  <div className="text-orange-400 text-sm font-semibold mb-1">Calories</div>
-                  <div className="text-3xl font-bold">{result.calories ?? 'N/A'}</div>
-                </div>
-                <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-xl p-4 border border-red-500/30">
-                  <div className="text-red-400 text-sm font-semibold mb-1">Protein</div>
-                  <div className="text-3xl font-bold">{result.protein ?? 'N/A'}<span className="text-lg">g</span></div>
-                </div>
-                <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 rounded-xl p-4 border border-yellow-500/30">
-                  <div className="text-yellow-400 text-sm font-semibold mb-1">Fat</div>
-                  <div className="text-3xl font-bold">{result.fat ?? 'N/A'}<span className="text-lg">g</span></div>
-                </div>
-                <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-xl p-4 border border-blue-500/30">
-                  <div className="text-blue-400 text-sm font-semibold mb-1">Carbs</div>
-                  <div className="text-3xl font-bold">{result.carbs ?? 'N/A'}<span className="text-lg">g</span></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Ingredients */}
-            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-xl border border-purple-500/20">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <span>🧪</span> Ingredients Analysis
-              </h2>
-              <div className="space-y-3">
-                {result.ingredients && result.ingredients.length > 0 ? (
-                  result.ingredients.map((ingredient, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 hover:border-purple-500/50 transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <h3 className="text-lg font-bold text-purple-200">
-                          {ingredient.name}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className={`text-2xl font-black ${getScoreColor(ingredient.healthScore)}`}>
-                            {ingredient.healthScore}
-                          </div>
-                          <div className="text-gray-400 text-sm">/10</div>
-                        </div>
-                      </div>
-                      <div className="mb-2 bg-slate-800 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full ${getScoreBg(ingredient.healthScore)} transition-all`}
-                          style={{ width: `${ingredient.healthScore * 10}%` }}
-                        />
-                      </div>
-                      <p className="text-gray-300 text-sm leading-relaxed">
-                        {ingredient.explanation}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-center py-4">No ingredients detected</p>
-                )}
-              </div>
-            </div>
-
-            <button
-              onClick={reset}
-              className="w-full py-4 px-6 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-105 active:scale-95"
-            >
-              🔄 Scan Another Label
-            </button>
-          </div>
-        )}
+    <div className="w-full max-w-md mx-auto px-4">
+      <div className="mb-3 text-center text-sm text-purple-300 font-medium min-h-[2.5rem] flex items-center justify-center">
+        <span className="animate-pulse">{step}</span>
       </div>
-
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 2s ease infinite;
-        }
-      `}</style>
+      <div className="w-full bg-gray-800 rounded-full h-4 overflow-hidden border border-purple-700">
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${progress}%`,
+            background: "linear-gradient(90deg, #7c3aed, #db2777, #f59e0b)",
+          }}
+        />
+      </div>
+      <div className="mt-2 text-center text-xs text-gray-500">
+        {Math.round(progress)}% — Bryan is judging…
+      </div>
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('preview-root'));
-root.render(<App />);
+// ── HealthScore badge ────────────────────────────────────────────────────────
+
+function ScoreBadge({ score }) {
+  const size = 96;
+  const r = 38;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(10, score)) / 10;
+  const dash = pct * circ;
+
+  const color =
+    score >= 8
+      ? "#10b981"
+      : score >= 5
+        ? "#f59e0b"
+        : score >= 3
+          ? "#f97316"
+          : "#ef4444";
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#374151"
+          strokeWidth="8"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: "stroke-dasharray 0.8s ease" }}
+        />
+      </svg>
+      <span className="absolute text-2xl font-black" style={{ color }}>
+        {score}
+      </span>
+    </div>
+  );
+}
+
+// ── Ingredient card ───────────────────────────────────────────────────────────
+
+function IngredientCard({ ingredient, index }) {
+  return (
+    <div className="flex gap-3 bg-gray-800 rounded-xl p-3 border border-gray-700 hover:border-gray-500 transition-colors">
+      <div className="flex-shrink-0 flex flex-col items-center justify-center w-10">
+        <span className={`text-lg font-black ${SCORE_COLOR(ingredient.score)}`}>
+          {ingredient.score}
+        </span>
+        <div className="w-7 h-1 rounded-full mt-1 overflow-hidden bg-gray-700">
+          <div
+            className={`h-full rounded-full ${SCORE_BG(ingredient.score)}`}
+            style={{ width: `${(ingredient.score / 10) * 100}%` }}
+          />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-white text-sm leading-tight">
+          {ingredient.name}
+        </p>
+        <p className="text-gray-400 text-xs mt-0.5 leading-snug">
+          {ingredient.description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── MacroCard ─────────────────────────────────────────────────────────────────
+
+function MacroCard({ label, value, unit, icon }) {
+  return (
+    <div className="flex flex-col items-center bg-gray-800 rounded-xl p-3 border border-gray-700 flex-1">
+      <span className="text-2xl mb-1">{icon}</span>
+      <span className="text-white font-black text-xl leading-none">
+        {value ?? "—"}
+        <span className="text-xs font-normal text-gray-400 ml-0.5">{unit}</span>
+      </span>
+      <span className="text-gray-400 text-xs mt-1 capitalize">{label}</span>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+
+function App() {
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [capturedImg, setCapturedImg] = useState(null);
+
+  // ── camera lifecycle ───────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!cameraActive) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+          },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        // attach to video element once it exists
+        attachStream();
+      } catch (e) {
+        setError("Camera access denied: " + e.message);
+        setCameraActive(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraActive]);
+
+  function attachStream() {
+    // retry until videoRef is mounted
+    const vid = videoRef.current;
+    if (!vid) {
+      setTimeout(attachStream, 80);
+      return;
+    }
+    vid.srcObject = streamRef.current;
+    vid.onloadedmetadata = () => {
+      vid
+        .play()
+        .then(() => setVideoReady(true))
+        .catch(() => {});
+    };
+  }
+
+  function stopCamera() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+    setVideoReady(false);
+  }
+
+  // ── progress animation ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!analyzing) return;
+    setProgress(0);
+    setStepIdx(0);
+    let p = 0;
+    let si = 0;
+    const interval = setInterval(() => {
+      p = Math.min(p + Math.random() * 3.5 + 0.5, 92);
+      si = Math.min(
+        Math.floor((p / 92) * FUNNY_STEPS.length),
+        FUNNY_STEPS.length - 1,
+      );
+      setProgress(p);
+      setStepIdx(si);
+    }, 300);
+    return () => clearInterval(interval);
+  }, [analyzing]);
+
+  // ── capture + analyse ──────────────────────────────────────────────────────
+
+  const handleCapture = useCallback(async () => {
+    const vid = videoRef.current;
+    if (!vid || !videoReady) {
+      setError("Camera not ready yet. Please wait a moment and retry.");
+      return;
+    }
+    const dataUrl = downscaleAndEncode(vid, 1024, 0.75);
+    if (!dataUrl) {
+      setError("Could not capture image — video dimensions are zero.");
+      return;
+    }
+    setCapturedImg(dataUrl);
+    stopCamera();
+    setAnalyzing(true);
+    setError(null);
+    setResult(null);
+
+    const schema = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        overall_score: { type: "number" },
+        bryan_verdict: { type: "string" },
+        macros: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            calories: { type: ["number", "null"] },
+            protein_g: { type: ["number", "null"] },
+            fat_g: { type: ["number", "null"] },
+            carbs_g: { type: ["number", "null"] },
+          },
+        },
+        ingredients: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              name: { type: "string" },
+              score: { type: "number" },
+              description: { type: "string" },
+            },
+          },
+        },
+      },
+    };
+
+    const prompt = `You are a nutrition analysis AI. The user has photographed a food packaging label (nutrition facts + ingredients list).
+
+Your tasks:
+1. Extract all visible nutrition data (calories, protein, fat, carbohydrates). The label may be in any language — translate everything to English.
+2. Extract every ingredient from the ingredients list and translate to English.
+3. For each ingredient assign a health score from 0 to 10 (10 = extremely healthy, 0 = highly harmful). Give a single plain-English sentence explaining what the ingredient is.
+4. Compute an overall health score (0–10) for the entire product.
+5. Write a short (2–4 sentence) witty, somewhat brutally honest verdict from the perspective of Bryan Johnson (the biohacker entrepreneur trying to live forever). Bryan is dramatic, self-righteous, mildly condescending about bad food choices, but also funny.
+
+Return strictly valid JSON matching the schema. If a macro cannot be found, use null.`;
+
+    try {
+      const { partialOutputStream } = await window.__CLAW2GO_AI__.streamText({
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image", image: dataUrl },
+            ],
+          },
+        ],
+        output: { type: "object", schema },
+      });
+
+      let latest = null;
+      for await (const partial of partialOutputStream) {
+        latest = partial;
+      }
+      setProgress(100);
+      await new Promise((r) => setTimeout(r, 400));
+      setResult(latest);
+    } catch (e) {
+      setError("AI analysis failed: " + e.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [videoReady]);
+
+  // ── reset ──────────────────────────────────────────────────────────────────
+
+  function handleReset() {
+    setResult(null);
+    setCapturedImg(null);
+    setError(null);
+    setProgress(0);
+    setCameraActive(true);
+  }
+
+  // ── render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      {/* Header */}
+      <header className="px-4 pt-5 pb-3 flex flex-col items-center gap-1">
+        <div className="flex items-center gap-2">
+          <span className="text-3xl">🔬</span>
+          <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+            NutriScan AI
+          </h1>
+        </div>
+        <p className="text-gray-500 text-xs text-center">
+          Point camera at any nutrition label · Bryan Johnson approved™
+        </p>
+      </header>
+
+      <main className="flex-1 flex flex-col items-center px-4 pb-8 gap-5">
+        {/* Error */}
+        {error && (
+          <div className="w-full max-w-md bg-red-900/40 border border-red-700 rounded-xl p-3 text-red-300 text-sm text-center">
+            ⚠️ {error}
+            <button
+              className="block mx-auto mt-2 text-xs underline text-red-400"
+              onClick={() => setError(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* ── IDLE / START ─────────────────────────────────────────────────── */}
+        {!cameraActive && !analyzing && !result && (
+          <div className="flex flex-col items-center gap-6 mt-10">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-900/50">
+              <span className="text-5xl">📷</span>
+            </div>
+            <div className="text-center max-w-xs">
+              <h2 className="font-bold text-lg text-white mb-1">
+                Scan Your Food
+              </h2>
+              <p className="text-gray-400 text-sm">
+                Bryan Johnson wants to know if what you&apos;re eating will kill you
+                sooner than expected.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setError(null);
+                setCameraActive(true);
+              }}
+              className="px-8 py-3 rounded-2xl font-bold text-white text-base shadow-lg"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #db2777)",
+              }}
+            >
+              Start Scanning
+            </button>
+          </div>
+        )}
+
+        {/* ── CAMERA VIEW ──────────────────────────────────────────────────── */}
+        {cameraActive && (
+          <div className="w-full max-w-md flex flex-col items-center gap-4">
+            <div className="relative w-full aspect-[3/4] bg-gray-900 rounded-2xl overflow-hidden border-2 border-purple-700 shadow-lg shadow-purple-900/40">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
+                muted
+                autoPlay
+              />
+              {/* viewfinder corners */}
+              {[
+                "top-2 left-2",
+                "top-2 right-2",
+                "bottom-2 left-2",
+                "bottom-2 right-2",
+              ].map((pos, i) => (
+                <div key={i} className={`absolute ${pos} w-6 h-6`}>
+                  <div
+                    className={`absolute inset-0 border-purple-400 ${
+                      i === 0
+                        ? "border-t-2 border-l-2 rounded-tl"
+                        : i === 1
+                          ? "border-t-2 border-r-2 rounded-tr"
+                          : i === 2
+                            ? "border-b-2 border-l-2 rounded-bl"
+                            : "border-b-2 border-r-2 rounded-br"
+                    }`}
+                  />
+                </div>
+              ))}
+              {!videoReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-950/70">
+                  <span className="text-gray-400 text-sm animate-pulse">
+                    Warming up camera…
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-gray-400 text-xs text-center">
+              Position the nutrition label clearly within the frame
+            </p>
+            <div className="flex gap-3 w-full max-w-xs">
+              <button
+                onClick={stopCamera}
+                className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 font-semibold text-sm border border-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCapture}
+                disabled={!videoReady}
+                className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-40"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed, #db2777)",
+                }}
+              >
+                {capturing ? "Capturing…" : "📸 Capture"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── ANALYSING ────────────────────────────────────────────────────── */}
+        {analyzing && (
+          <div className="w-full max-w-md flex flex-col items-center gap-6 mt-6">
+            {capturedImg && (
+              <img
+                src={capturedImg}
+                alt="captured"
+                className="w-32 h-40 object-cover rounded-xl border border-purple-700 opacity-60"
+              />
+            )}
+            <FunnyProgressBar progress={progress} step={FUNNY_STEPS[stepIdx]} />
+            <p className="text-gray-500 text-xs text-center max-w-xs">
+              Our AI sommelier is tasting your ingredients one by one…
+            </p>
+          </div>
+        )}
+
+        {/* ── RESULTS ──────────────────────────────────────────────────────── */}
+        {result && !analyzing && (
+          <div className="w-full max-w-md flex flex-col gap-5">
+            {/* Overall health score + verdict */}
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 border border-purple-800 shadow-lg">
+              <div className="flex items-center gap-4">
+                <ScoreBadge score={Math.round(result.overall_score ?? 0)} />
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-2xl font-black text-white">
+                      {result.overall_score?.toFixed(1) ?? "—"}
+                    </span>
+                    <span className="text-gray-500 text-sm">/ 10</span>
+                    <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-900 text-purple-300">
+                      Health Score
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-xs leading-snug">
+                    Bryan Johnson&apos;s verdict 👇
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 bg-gray-950/60 rounded-xl p-3 border border-gray-700">
+                <p className="text-sm text-gray-200 leading-relaxed italic">
+                  &quot;{result.bryan_verdict}&quot;
+                </p>
+                <p className="text-right text-xs text-purple-400 mt-1">
+                  — Bryan Johnson, age reversalist
+                </p>
+              </div>
+            </div>
+
+            {/* Macros */}
+            {result.macros && (
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                  Nutrition Facts
+                </h3>
+                <div className="flex gap-2">
+                  <MacroCard
+                    label="Calories"
+                    value={result.macros.calories}
+                    unit="kcal"
+                    icon={MACRO_ICONS.calories}
+                  />
+                  <MacroCard
+                    label="Protein"
+                    value={result.macros.protein_g}
+                    unit="g"
+                    icon={MACRO_ICONS.protein}
+                  />
+                  <MacroCard
+                    label="Fat"
+                    value={result.macros.fat_g}
+                    unit="g"
+                    icon={MACRO_ICONS.fat}
+                  />
+                  <MacroCard
+                    label="Carbs"
+                    value={result.macros.carbs_g}
+                    unit="g"
+                    icon={MACRO_ICONS.carbs}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Ingredients */}
+            {result.ingredients && result.ingredients.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                  Ingredients ({result.ingredients.length})
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {result.ingredients.map((ing, i) => (
+                    <IngredientCard key={i} ingredient={ing} index={i} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Captured image toggle */}
+            {capturedImg && (
+              <details className="bg-gray-900 rounded-xl border border-gray-800">
+                <summary className="px-3 py-2 text-xs text-gray-500 cursor-pointer select-none">
+                  View captured image
+                </summary>
+                <img
+                  src={capturedImg}
+                  alt="captured label"
+                  className="w-full rounded-b-xl object-contain max-h-64"
+                />
+              </details>
+            )}
+
+            {/* Scan again */}
+            <button
+              onClick={handleReset}
+              className="w-full py-3 rounded-2xl font-bold text-white text-sm shadow-lg mt-1"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #db2777)",
+              }}
+            >
+              🔁 Scan Another Label
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("preview-root")).render(<App />);
