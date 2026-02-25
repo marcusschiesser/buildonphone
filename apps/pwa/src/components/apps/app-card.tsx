@@ -65,7 +65,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
   };
 
   return (
-    <IonCard className="ion-no-margin">
+    <IonCard className="ion-no-margin app-card">
       <IonCardHeader>
         <IonCardSubtitle>
           <>
@@ -77,7 +77,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
         <IonCardTitle>{app.name}</IonCardTitle>
       </IonCardHeader>
 
-      <IonCardContent>
+      <IonCardContent className="app-card-content">
         {isRenaming ? (
           <>
             <IonLabel className="ion-display-block ion-margin-bottom">App Name</IonLabel>
@@ -99,11 +99,13 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
             ) : null}
           </>
         ) : (
-          <IonNote color="medium">{app.description || 'No description'}</IonNote>
+          <IonNote color="medium" className="app-card-description">
+            {app.description || 'No description'}
+          </IonNote>
         )}
 
-        <IonGrid className="ion-no-padding ion-margin-top">
-          <IonRow className="app-card-actions-row">
+        <IonGrid className="ion-no-padding ion-margin-top app-card-actions">
+          <IonRow className={isRenaming ? 'app-card-actions-row' : 'app-card-actions-row ion-justify-content-between'}>
           {isRenaming ? (
             <>
               <IonCol size="6">
@@ -119,32 +121,25 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
             </>
           ) : (
             <>
-              <IonCol size="3">
-                <IonButton expand="block" size="small" fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
-                  Run
-                </IonButton>
+              <IonCol size="auto" className="ion-no-padding">
+                <div className="app-card-actions-group app-card-actions-group--left">
+                  <IonButton size="small" fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
+                    Run
+                  </IonButton>
+                  <IonButton size="small" color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
+                    Edit
+                  </IonButton>
+                </div>
               </IonCol>
-              <IonCol size="3">
-                <IonButton expand="block" size="small" color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
-                  Edit
-                </IonButton>
-              </IonCol>
-              <IonCol size="3">
-                <IonButton expand="block" size="small" fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
-                  Rename
-                </IonButton>
-              </IonCol>
-              <IonCol size="3">
-                <IonButton
-                  expand="block"
-                  size="small"
-                  fill="outline"
-                  color="danger"
-                  disabled={generating}
-                  onClick={() => void onDelete(app.id)}
-                >
-                  Delete
-                </IonButton>
+              <IonCol size="auto" className="ion-no-padding">
+                <div className="app-card-actions-group app-card-actions-group--right">
+                  <IonButton size="small" fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
+                    Rename
+                  </IonButton>
+                  <IonButton size="small" fill="outline" color="danger" disabled={generating} onClick={() => void onDelete(app.id)}>
+                    Delete
+                  </IonButton>
+                </div>
               </IonCol>
             </>
           )}

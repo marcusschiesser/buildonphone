@@ -118,14 +118,14 @@ export default function HomePage() {
             <ByokPanel />
 
           <IonGrid fixed>
-            <IonRow>
+            <IonRow className="ion-align-items-stretch">
               {appsLoaded && apps.length === 0 ? (
                 <IonCol size="12">
                   <IonText color="medium">No apps yet. Start with &quot;Create App&quot;.</IonText>
                 </IonCol>
               ) : (
                 apps.map((app) => (
-                  <IonCol key={app.id} size="12" sizeMd="6" sizeXl="4">
+                  <IonCol key={app.id} size="12" sizeMd="6" sizeXl="4" className="app-card-col">
                     <AppCard
                       app={app}
                       onRename={renameApp}
