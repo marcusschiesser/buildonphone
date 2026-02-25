@@ -67,7 +67,7 @@ export default function LoginScreen() {
         <div className="page-shell page-shell--narrow ion-padding">
           <IonCard>
             <IonCardContent>
-              <IonNote className="ion-display-block ion-margin-bottom">Claw2go</IonNote>
+              <IonNote className="ion-display-block ion-margin-bottom">buildonphone</IonNote>
               <form onSubmit={handleSubmit}>
                 <IonItem lines="inset">
                   <IonLabel position="stacked">Password</IonLabel>

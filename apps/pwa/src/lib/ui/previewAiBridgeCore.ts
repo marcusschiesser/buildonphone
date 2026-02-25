@@ -1,8 +1,8 @@
-export const PREVIEW_AI_REQUEST_EVENT_TYPE = 'claw2go-ai-request';
-export const PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE = 'claw2go-ai-chunk-text';
-export const PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE = 'claw2go-ai-chunk-object';
-export const PREVIEW_AI_DONE_EVENT_TYPE = 'claw2go-ai-done';
-export const PREVIEW_AI_ERROR_EVENT_TYPE = 'claw2go-ai-error';
+export const PREVIEW_AI_REQUEST_EVENT_TYPE = 'buildonphone-ai-request';
+export const PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE = 'buildonphone-ai-chunk-text';
+export const PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE = 'buildonphone-ai-chunk-object';
+export const PREVIEW_AI_DONE_EVENT_TYPE = 'buildonphone-ai-done';
+export const PREVIEW_AI_ERROR_EVENT_TYPE = 'buildonphone-ai-error';
 
 export interface PreviewAiInput {
   prompt?: string;

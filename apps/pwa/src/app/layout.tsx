@@ -14,14 +14,14 @@ import { ServiceWorkerRegistration } from '@/components/service-worker-registrat
 import { IonicRoot } from '@/components/ionic-root';
 
 export const metadata: Metadata = {
-  title: 'Claw2go',
+  title: 'buildonphone',
   description: 'Built for the Thumb-First Developer. Powered by edge-pi.',
   manifest: '/manifest.webmanifest',
   themeColor: '#ffffff',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Claw2go',
+    title: 'buildonphone',
   },
 };
 

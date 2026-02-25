@@ -1,4 +1,4 @@
-const ACTIVE_JOB_KEY_PREFIX = 'claw2go:active-job:';
+const ACTIVE_JOB_KEY_PREFIX = 'buildonphone:active-job:';
 
 export interface PersistedJob {
   jobId: string;

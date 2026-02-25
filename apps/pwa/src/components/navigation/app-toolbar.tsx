@@ -8,7 +8,7 @@ export function AppToolbar({ start, end }: { start?: ReactNode; end?: ReactNode 
     <IonToolbar className="app-toolbar">
       {start ? <IonButtons slot="start">{start}</IonButtons> : null}
       <div className="app-toolbar__title" aria-label="App name">
-        <strong>Claw2go</strong>
+        <strong>buildonphone</strong>
       </div>
       {end ? <IonButtons slot="end">{end}</IonButtons> : null}
     </IonToolbar>

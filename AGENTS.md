@@ -94,18 +94,18 @@ From repo root (`../superuser-pwa`):
 - Typecheck (all workspaces): `npm run typecheck`
 
 App-only commands:
-- `npm run dev --workspace @claw2go/pwa`
-- `npm run lint --workspace @claw2go/pwa`
-- `npm run typecheck --workspace @claw2go/pwa`
-- `npm run build --workspace @claw2go/pwa`
+- `npm run dev --workspace @buildonphone/pwa`
+- `npm run lint --workspace @buildonphone/pwa`
+- `npm run typecheck --workspace @buildonphone/pwa`
+- `npm run build --workspace @buildonphone/pwa`
 
 ## 9) Pre-Commit Checklist (mandatory before every commit)
 
 Run both commands from the `apps/pwa` directory and confirm they exit with no errors:
 
 ```bash
-npm run lint --workspace @claw2go/pwa
-npm run typecheck --workspace @claw2go/pwa
+npm run lint --workspace @buildonphone/pwa
+npm run typecheck --workspace @buildonphone/pwa
 ```
 
 Fix all reported errors before committing. Do **not** disable lint rules or add `// @ts-ignore` to silence errors — resolve them properly.
@@ -149,9 +149,9 @@ Fix all reported errors before committing. Do **not** disable lint rules or add 
 ## 13) Validation Checklist (before handoff)
 
 Run and confirm all green:
-- `npm run lint --workspace @claw2go/pwa`
-- `npm run typecheck --workspace @claw2go/pwa`
-- `npm run build --workspace @claw2go/pwa`
+- `npm run lint --workspace @buildonphone/pwa`
+- `npm run typecheck --workspace @buildonphone/pwa`
+- `npm run build --workspace @buildonphone/pwa`
 
 Then smoke-test manually:
 - Save BYOK key

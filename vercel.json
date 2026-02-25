@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "npm run build --workspace @claw2go/pwa",
-  "devCommand": "npm run dev --workspace @claw2go/pwa",
+  "buildCommand": "npm run build --workspace @buildonphone/pwa",
+  "devCommand": "npm run dev --workspace @buildonphone/pwa",
   "outputDirectory": "apps/pwa/.next"
 }

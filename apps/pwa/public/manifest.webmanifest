@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Claw2go",
-  "short_name": "Claw2go",
+  "name": "buildonphone",
+  "short_name": "buildonphone",
   "description": "Built for the Thumb-First Developer. Powered by edge-pi.",
   "start_url": "/",
   "scope": "/",

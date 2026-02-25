@@ -1,12 +1,12 @@
-# claw2go
+# buildonphone
 
 Built for the Thumb-First Developer. Powered by [edge-pi](https://github.com/marcusschiesser/edge-pi).
 
-Claw2go is a mobile app generator running on your phone. You provide a prompt and your own Anthropic API key, and the app generates a React app (`app.jsx`) that runs inside a secure iframe preview/runtime. 
+buildonphone is a mobile app generator running on your phone. You provide a prompt and your own Anthropic API key, and the app generates a React app (`app.jsx`) that runs inside a secure iframe preview/runtime. 
 
 ## Monorepo Structure
 
-- `apps/pwa`: main Next.js app (`@claw2go/pwa`)
+- `apps/pwa`: main Next.js app (`@buildonphone/pwa`)
 - `AGENTS.md`: operating guide for coding agents
 - `turbo.json`: Turborepo task pipeline
 
@@ -42,7 +42,7 @@ npm run dev
 Run only the PWA:
 
 ```bash
-npm run dev --workspace @claw2go/pwa
+npm run dev --workspace @buildonphone/pwa
 ```
 
 Open `http://localhost:3000`.
@@ -61,9 +61,9 @@ npm run test
 App-only:
 
 ```bash
-npm run build --workspace @claw2go/pwa
-npm run lint --workspace @claw2go/pwa
-npm run typecheck --workspace @claw2go/pwa
+npm run build --workspace @buildonphone/pwa
+npm run lint --workspace @buildonphone/pwa
+npm run typecheck --workspace @buildonphone/pwa
 ```
 
 ## Environment Variables

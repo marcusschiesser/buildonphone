@@ -1,13 +1,13 @@
-// Service Worker for Claw2go PWA
+// Service Worker for buildonphone PWA
 // Strategy:
 //   - App shell (navigation): network-first with cache fallback
 //   - Next.js static assets (/_next/static/): cache-first (immutable hashed files)
 //   - Default app sources (/default-apps/): stale-while-revalidate
 //   - API routes (/api/): network-only (never cache)
 
-const SHELL_CACHE = 'claw2go-shell-v1';
-const STATIC_CACHE = 'claw2go-static-v1';
-const ASSETS_CACHE = 'claw2go-assets-v1';
+const SHELL_CACHE = 'buildonphone-shell-v1';
+const STATIC_CACHE = 'buildonphone-static-v1';
+const ASSETS_CACHE = 'buildonphone-assets-v1';
 
 const APP_SHELL_URLS = ['/', '/create', '/manifest.webmanifest'];
 

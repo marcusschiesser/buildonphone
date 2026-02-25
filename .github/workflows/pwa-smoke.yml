@@ -37,12 +37,12 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
-        run: npm exec --workspace @claw2go/pwa -- playwright install --with-deps chromium
+        run: npm exec --workspace @buildonphone/pwa -- playwright install --with-deps chromium
 
       - name: Run PWA smoke test
         env:
           NEXT_PUBLIC_FAKE_GENERATION: '1'
-        run: npm run smoke --workspace @claw2go/pwa
+        run: npm run smoke --workspace @buildonphone/pwa
 
       - name: Upload Playwright artifacts
         if: failure()

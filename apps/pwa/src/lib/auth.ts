@@ -1,5 +1,5 @@
-export const COOKIE_NAME = 'claw2go_auth';
-const HMAC_MESSAGE = 'claw2go-auth-v1';
+export const COOKIE_NAME = 'buildonphone_auth';
+const HMAC_MESSAGE = 'buildonphone-auth-v1';
 const TEXT_ENCODER = new TextEncoder();
 
 function timingSafeEqualString(a: string, b: string): boolean {

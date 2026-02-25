@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import type { GenerationJobRecord, GenerationJobResult, GenerationJobStatus } from './serverTypes';
 
-const JOB_PREFIX = 'claw2go:genjob:';
+const JOB_PREFIX = 'buildonphone:genjob:';
 const DEFAULT_TTL_SECONDS = Number(process.env.GENERATION_JOB_TTL_SECONDS || '86400');
 
 type PartialProgress = Partial<GenerationJobRecord['progress']>;

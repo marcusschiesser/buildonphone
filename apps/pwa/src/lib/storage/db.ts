@@ -24,7 +24,7 @@ class SuDb extends Dexie {
   secrets!: Table<SecretRow, string>;
 
   constructor() {
-    super('claw2go');
+    super('buildonphone');
     this.version(1).stores({
       apps: 'id, updatedAt',
       messages: 'id, appId, createdAt',

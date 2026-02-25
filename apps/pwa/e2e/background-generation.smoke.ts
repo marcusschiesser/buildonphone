@@ -33,7 +33,7 @@ async function clearClientStorage(page: import('@playwright/test').Page) {
     }
 
     await new Promise<void>((resolve) => {
-      const request = indexedDB.deleteDatabase('claw2go');
+      const request = indexedDB.deleteDatabase('buildonphone');
       request.onsuccess = () => resolve();
       request.onerror = () => resolve();
       request.onblocked = () => resolve();

@@ -37,4 +37,4 @@ jobs:
         run: npm ci
 
       - name: Run PWA lint/typecheck
-        run: npm run ci:check --workspace @claw2go/pwa
+        run: npm run ci:check --workspace @buildonphone/pwa
