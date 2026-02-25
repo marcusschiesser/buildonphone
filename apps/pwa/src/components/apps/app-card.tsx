@@ -100,29 +100,31 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
         )}
 
         <div className="ion-margin-top">
-          <IonButton fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
-            Run
-          </IonButton>
-          <IonButton color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
-            Edit
-          </IonButton>
           {isRenaming ? (
             <>
-              <IonButton fill="outline" disabled={busy} onClick={() => void saveRename()}>
-                Save
-              </IonButton>
               <IonButton fill="clear" color="medium" disabled={busy} onClick={cancelRename}>
                 Cancel
               </IonButton>
+              <IonButton fill="outline" disabled={busy} onClick={() => void saveRename()}>
+                Save
+              </IonButton>
             </>
           ) : (
-            <IonButton fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
-              Rename
-            </IonButton>
+            <>
+              <IonButton fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
+                Run
+              </IonButton>
+              <IonButton color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
+                Edit
+              </IonButton>
+              <IonButton fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
+                Rename
+              </IonButton>
+              <IonButton fill="outline" color="danger" disabled={generating} onClick={() => void onDelete(app.id)}>
+                Delete
+              </IonButton>
+            </>
           )}
-          <IonButton fill="outline" color="danger" disabled={generating} onClick={() => void onDelete(app.id)}>
-            Delete
-          </IonButton>
         </div>
       </IonCardContent>
     </IonCard>
