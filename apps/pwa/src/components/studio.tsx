@@ -92,7 +92,6 @@ export function Studio({
         const nextFiles = resolvedVersion > 0 ? await localStorageAdapter.listArtifacts(appId, resolvedVersion) : {};
         if (cancelled) return;
         setFiles(nextFiles);
-        console.debug('[Studio] Generated files', nextFiles);
         setActiveTab('preview');
       }
 

@@ -19,6 +19,24 @@ export default function EditPage() {
     void (async () => {
       const current = await localStorageAdapter.getApp(id);
       const history = await localStorageAdapter.getChatHistory(id);
+      let appJsx: string | null = null;
+      if (current?.currentVersion && current.currentVersion > 0) {
+        try {
+          appJsx = await localStorageAdapter.readArtifact(id, current.currentVersion, 'app.jsx');
+        } catch {
+          appJsx = null;
+        }
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        const assistantMarkdown = history
+          .filter((message) => message.role === 'assistant')
+          .at(-1)?.content ?? null;
+        const assistantMessageQuoted = `\`${(assistantMarkdown ?? '').replace(/`/g, '\\`')}\``;
+        console.debug(`edit page loaded\nappId: ${id}\nassistantMessage: ${assistantMessageQuoted}`);
+        console.debug(`appJsx:\n${appJsx ?? ''}`);
+      }
+
       setApp(current);
       setMessages(history);
       setLoading(false);
