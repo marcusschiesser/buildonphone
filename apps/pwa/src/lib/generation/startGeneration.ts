@@ -9,6 +9,7 @@ import { notifyGenerationComplete } from './notify';
 import { clearPersistedJob, persistActiveJob } from './persistJob';
 import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
+import { captureAnalyticsEvent, maybeCaptureFirstGenerationSuccess } from '@/lib/analytics/telemetry';
 
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
@@ -32,8 +33,10 @@ export async function applyCompletedJob(
   appId: string,
   terminalJob: GenerationJobRecord,
   nextVersion: number,
-  appName: string
+  appName: string,
+  startedAt?: number
 ): Promise<void> {
+  const durationMs = startedAt ? Math.max(0, Date.now() - startedAt) : undefined;
   if (terminalJob.status !== 'succeeded' || !terminalJob.result?.ok || !terminalJob.result.artifacts) {
     const message = terminalJob.result?.error ?? 'Generation failed';
     const assistantMessage = await localStorageAdapter.appendMessage(appId, {
@@ -48,6 +51,13 @@ export async function applyCompletedJob(
       assistantMessage,
       jobId: terminalJob.id,
       completedAt: Date.now(),
+    });
+    captureAnalyticsEvent('generation_completed', {
+      appId,
+      ok: false,
+      error: message,
+      jobId: terminalJob.id,
+      durationMs,
     });
     notifyGenerationComplete({ appName, ok: false, error: message });
     return;
@@ -79,6 +89,18 @@ export async function applyCompletedJob(
     jobId: terminalJob.id,
     completedAt: Date.now(),
   });
+  captureAnalyticsEvent('generation_completed', {
+    appId,
+    ok: true,
+    jobId: terminalJob.id,
+    newVersion: nextVersion,
+    artifactCount: Object.keys(artifacts).length,
+    durationMs,
+  });
+  maybeCaptureFirstGenerationSuccess({
+    appId,
+    jobId: terminalJob.id,
+  });
 
   notifyGenerationComplete({ appName, ok: true });
 }
@@ -86,6 +108,7 @@ export async function applyCompletedJob(
 export async function startGeneration(params: {
   appId: string;
   text: string;
+  source: 'chat_send' | 'preview_fix';
   messages: ChatMessage[];
   version: number;
   files: Record<string, string>;
@@ -95,6 +118,7 @@ export async function startGeneration(params: {
 }): Promise<void> {
   const text = params.text.trim();
   if (!text) return;
+  const generationStartedAt = Date.now();
 
   const existing = getGeneration(params.appId);
   if (existing?.busy || existing?.result) return;
@@ -108,6 +132,15 @@ export async function startGeneration(params: {
   let jobPersisted = false;
 
   try {
+    captureAnalyticsEvent('prompt_submitted', {
+      appId: params.appId,
+      source: params.source,
+      promptText: text,
+      promptLength: text.length,
+      version: params.version,
+      messageCount: params.messages.length,
+    });
+
     const userMsg = await localStorageAdapter.appendMessage(params.appId, {
       appId: params.appId,
       role: 'user',
@@ -161,6 +194,12 @@ export async function startGeneration(params: {
         assistantMessage,
         completedAt: Date.now(),
       });
+      captureAnalyticsEvent('generation_completed', {
+        appId: params.appId,
+        ok: false,
+        error: message,
+        durationMs: Date.now() - generationStartedAt,
+      });
       notifyGenerationComplete({ appName, ok: false, error: message });
       return;
     }
@@ -202,6 +241,12 @@ export async function startGeneration(params: {
       status: 'Queued prompt',
       phase: 'preparing',
     });
+    captureAnalyticsEvent('generation_job_created', {
+      appId: params.appId,
+      jobId: created.jobId,
+      source: params.source,
+      version: params.version,
+    });
 
     // Persist so the job can be resumed if the user leaves and returns.
     persistActiveJob({ jobId: created.jobId, appId: params.appId, nextVersion, appName });
@@ -228,7 +273,7 @@ export async function startGeneration(params: {
 
     clearPersistedJob(params.appId);
     jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
-    await applyCompletedJob(params.appId, terminalJob, nextVersion, appName);
+    await applyCompletedJob(params.appId, terminalJob, nextVersion, appName, generationStartedAt);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
@@ -263,6 +308,12 @@ export async function startGeneration(params: {
         error: message,
         assistantMessage,
         completedAt: Date.now(),
+      });
+      captureAnalyticsEvent('generation_completed', {
+        appId: params.appId,
+        ok: false,
+        error: message,
+        durationMs: Date.now() - generationStartedAt,
       });
 
       notifyGenerationComplete({ appName, ok: false, error: message });

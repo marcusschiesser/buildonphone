@@ -18,6 +18,8 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { getServerConfig } from '@/lib/server-config';
+import { markIdentityPromptPendingAfterLogin } from '@/lib/analytics/identity';
+import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -47,9 +49,12 @@ export default function LoginScreen() {
     });
 
     if (res.ok) {
+      markIdentityPromptPendingAfterLogin();
+      captureAnalyticsEvent('login_success');
       const from = searchParams.get('from') || '/';
       router.replace(from);
     } else {
+      captureAnalyticsEvent('login_failed');
       setError('Invalid password');
       setLoading(false);
     }

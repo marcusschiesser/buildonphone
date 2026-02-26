@@ -12,6 +12,9 @@ import '@ionic/react/css/palettes/dark.class.css';
 import './globals.css';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 import { IonicRoot } from '@/components/ionic-root';
+import { PostHogProvider } from '@/components/analytics/posthog-provider';
+import { PageTracker } from '@/components/analytics/page-tracker';
+import { IdentityPrompt } from '@/components/analytics/identity-prompt';
 
 export const metadata: Metadata = {
   title: 'buildonphone.com',
@@ -36,6 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <IonicRoot>{children}</IonicRoot>
+        <PostHogProvider />
+        <PageTracker />
+        <IdentityPrompt />
         <ServiceWorkerRegistration />
       </body>
     </html>

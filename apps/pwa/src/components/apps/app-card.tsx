@@ -20,6 +20,7 @@ import {
   IonRow,
   IonText,
 } from '@ionic/react';
+import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
 
 interface AppCardProps {
   app: SuApp;
@@ -57,6 +58,10 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
     try {
       await onRename(app.id, next);
       setIsRenaming(false);
+      captureAnalyticsEvent('app_rename_saved', {
+        appId: app.id,
+        nameLength: next.length,
+      });
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : 'Failed to rename app.');
     } finally {
@@ -123,20 +128,54 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
             <>
               <IonCol size="auto" className="ion-no-padding">
                 <div className="app-card-actions-group app-card-actions-group--left">
-                  <IonButton size="small" fill="outline" color="medium" onClick={() => router.push(`/run/${app.id}`)}>
+                  <IonButton
+                    size="small"
+                    fill="outline"
+                    color="medium"
+                    onClick={() => {
+                      captureAnalyticsEvent('app_run_clicked', { appId: app.id });
+                      router.push(`/run/${app.id}`);
+                    }}
+                  >
                     Run
                   </IonButton>
-                  <IonButton size="small" color="primary" onClick={() => router.push(`/edit/${app.id}`)}>
+                  <IonButton
+                    size="small"
+                    color="primary"
+                    onClick={() => {
+                      captureAnalyticsEvent('app_edit_clicked', { appId: app.id });
+                      router.push(`/edit/${app.id}`);
+                    }}
+                  >
                     Edit
                   </IonButton>
                 </div>
               </IonCol>
               <IonCol size="auto" className="ion-no-padding">
                 <div className="app-card-actions-group app-card-actions-group--right">
-                  <IonButton size="small" fill="clear" color="medium" onClick={() => setIsRenaming(true)}>
+                  <IonButton
+                    size="small"
+                    fill="clear"
+                    color="medium"
+                    onClick={() => {
+                      captureAnalyticsEvent('app_rename_started', { appId: app.id });
+                      setIsRenaming(true);
+                    }}
+                  >
                     Rename
                   </IonButton>
-                  <IonButton size="small" fill="outline" color="danger" disabled={generating} onClick={() => void onDelete(app.id)}>
+                  <IonButton
+                    size="small"
+                    fill="outline"
+                    color="danger"
+                    disabled={generating}
+                    onClick={() => {
+                      void (async () => {
+                        await onDelete(app.id);
+                        captureAnalyticsEvent('app_deleted', { appId: app.id });
+                      })();
+                    }}
+                  >
                     Delete
                   </IonButton>
                 </div>

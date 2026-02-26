@@ -30,6 +30,7 @@ import { StudioMessage } from './studio-message';
 import { AppToolbar } from './navigation/app-toolbar';
 import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
+import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
 
 export function Studio({
   appId,
@@ -129,6 +130,7 @@ export function Studio({
     void startGeneration({
       appId,
       text,
+      source: 'chat_send',
       messages,
       version,
       files,
@@ -141,6 +143,11 @@ export function Studio({
   const onPreviewFix = (payload: PreviewFixPayload) => {
     if (busy || gen?.result) return;
     const fixPrompt = buildFixPrompt(payload);
+    captureAnalyticsEvent('preview_fix_requested', {
+      appId,
+      errorMessage: payload.errorMessage,
+      hasStack: Boolean(payload.stack?.trim()),
+    });
     if (!notificationPermissionRequestedRef.current) {
       notificationPermissionRequestedRef.current = true;
       void requestNotificationPermission();
@@ -148,6 +155,7 @@ export function Studio({
     void startGeneration({
       appId,
       text: fixPrompt,
+      source: 'preview_fix',
       messages,
       version,
       files,
@@ -164,6 +172,15 @@ export function Studio({
 
   const mounted = useIsClient();
 
+  const onTabChange = (nextTab: 'chat' | 'preview') => {
+    if (activeTab === nextTab) return;
+    setActiveTab(nextTab);
+    captureAnalyticsEvent('studio_tab_changed', {
+      appId,
+      tab: nextTab,
+    });
+  };
+
   if (!mounted) return null;
 
   return (
@@ -171,7 +188,7 @@ export function Studio({
       <IonHeader translucent>
         <AppToolbar start={<IonBackButton defaultHref="/" text="Back" />} />
         <IonToolbar>
-          <IonSegment value={activeTab} onIonChange={(event) => setActiveTab((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
+          <IonSegment value={activeTab} onIonChange={(event) => onTabChange((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
             <IonSegmentButton value="chat">
               <IonLabel>Chat</IonLabel>
             </IonSegmentButton>
@@ -200,7 +217,13 @@ export function Studio({
                           key={example}
                           fill="clear"
                           color="secondary"
-                          onClick={() => setInput(example)}
+                          onClick={() => {
+                            setInput(example);
+                            captureAnalyticsEvent('example_prompt_clicked', {
+                              appId,
+                              example,
+                            });
+                          }}
                           className={styles.examplePromptBtn}
                         >
                           {example}

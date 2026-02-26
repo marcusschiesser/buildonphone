@@ -13,19 +13,20 @@
     "smoke": "playwright test -c playwright.config.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.33",
     "@ionic/core": "^8.7.11",
     "@ionic/react": "^8.7.11",
-    "@ai-sdk/anthropic": "^3.0.33",
     "@upstash/redis": "^1.36.2",
     "@vercel/sandbox": "^1.6.0",
     "ai": "^6.0.71",
     "dexie": "^4.2.1",
     "edge-pi": "^0.4.1",
+    "ionicons": "^7.4.0",
     "lucide-react": "^0.544.0",
     "next": "16.1.6",
+    "posthog-js": "^1.354.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "ionicons": "^7.4.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "zod": "^4.3.6"

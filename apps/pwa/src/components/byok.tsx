@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonInput, IonItem, IonText } from '@ionic/react';
 import { clearAnthropicKey, hasAnthropicKey, setAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
+import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
 
 export function ByokPanel() {
   const [value, setValue] = useState('');
@@ -49,6 +50,7 @@ export function ByokPanel() {
               setValue('');
               setHasKey(true);
               setStatus('Saved');
+              captureAnalyticsEvent('byok_saved');
             }}
           >
             Save
@@ -60,6 +62,7 @@ export function ByokPanel() {
               await clearAnthropicKey();
               setHasKey(false);
               setStatus('Removed');
+              captureAnalyticsEvent('byok_removed');
             }}
           >
             Forget
