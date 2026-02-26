@@ -15,6 +15,8 @@ Open `http://localhost:3000`.
 
 ## Analytics Configuration (PostHog)
 
+PostHog is initialized in `src/instrumentation-client.ts`.
+
 Set these env vars in your deployment:
 
 ```bash
