@@ -2,3 +2,21 @@
   width: 100%;
   text-transform: none;
 }
+
+.composerGrid {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.composerInput {
+  --padding-top: 0.75rem;
+  --padding-bottom: 0.75rem;
+  --padding-start: 0;
+  --padding-end: 0;
+  max-height: 40vh;
+}
+
+.composerInput textarea {
+  max-height: 40vh;
+  overflow-y: auto;
+}

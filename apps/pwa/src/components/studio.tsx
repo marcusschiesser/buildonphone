@@ -1,17 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonBackButton,
   IonButton,
   IonContent,
   IonFooter,
+  IonGrid,
   IonHeader,
   IonItem,
+  IonCol,
   IonLabel,
   IonList,
   IonPage,
+  IonRow,
   IonSegment,
   IonSegmentButton,
   IonTextarea,
@@ -138,6 +141,13 @@ export function Studio({
     });
   };
 
+  const onComposerKeyDown = (event: KeyboardEvent<HTMLIonTextareaElement>) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      send();
+    }
+  };
+
   const onPreviewFix = (payload: PreviewFixPayload) => {
     if (busy || gen?.result) return;
     const fixPrompt = buildFixPrompt(payload);
@@ -219,18 +229,29 @@ export function Studio({
       </IonContent>
       <IonFooter>
         {activeTab === 'chat' ? (
-          <IonToolbar >
-            <IonItem lines="inset">
-              <IonTextarea
-                value={input}
-                onIonInput={(event) => setInput(event.detail.value ?? '')}
-                autoGrow
-                placeholder="Build me a habit tracker with calendar heatmap and streak logic..."
-              />
-              <IonButton onClick={send} disabled={busy || Boolean(gen?.result) || !input.trim()}>
-                {busy ? 'Working...' : 'Send'}
-              </IonButton>
-            </IonItem>
+          <IonToolbar>
+            <IonGrid className={styles.composerGrid} fixed>
+              <IonRow>
+                <IonCol size="12">
+                  <IonItem lines="inset">
+                    <IonTextarea
+                      value={input}
+                      onIonInput={(event) => setInput(event.detail.value ?? '')}
+                      onKeyDown={onComposerKeyDown}
+                      autoGrow
+                      rows={4}
+                      className={styles.composerInput}
+                      placeholder="Build me a habit tracker with calendar heatmap and streak logic..."
+                    />
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+              <IonRow className="ion-justify-content-end ion-padding-horizontal ion-padding-top">
+                <IonButton onClick={send} disabled={busy || Boolean(gen?.result) || !input.trim()}>
+                  {busy ? 'Working...' : 'Send'}
+                </IonButton>
+              </IonRow>
+            </IonGrid>
           </IonToolbar>
         ) : null}
         <MobileTabs active="studio" />
