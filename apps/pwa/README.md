@@ -19,6 +19,8 @@ Set these env vars in your deployment:
 
 ```bash
 NEXT_PUBLIC_POSTHOG_KEY=phc_xxx
+# Backward-compatible alias if already configured:
+# NEXT_PUBLIC_POSTHOG_TOKEN=phc_xxx
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 # Optional override:
 # NEXT_PUBLIC_ANALYTICS_ENABLED=1

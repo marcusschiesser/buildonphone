@@ -1,15 +1,9 @@
-type TelemetryProps = Record<string, unknown>;
+import posthog from 'posthog-js';
 
-type PostHogLike = {
-  init: (apiKey: string, options?: Record<string, unknown>) => void;
-  capture: (event: string, properties?: TelemetryProps) => void;
-  identify: (distinctId: string, properties?: TelemetryProps) => void;
-  set_config?: (config: Record<string, unknown>) => void;
-};
+type TelemetryProps = Record<string, unknown>;
 
 const FIRST_GENERATION_SUCCESS_KEY = 'analytics_first_generation_success_sent';
 let initialized = false;
-let posthogClient: PostHogLike | null = null;
 let initPromise: Promise<void> | null = null;
 
 function getAnalyticsEnabled(): boolean {
@@ -25,19 +19,11 @@ function getPostHogHost(): string {
 }
 
 function getPostHogKey(): string {
-  return process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || '';
-}
-
-async function ensurePostHogClient(): Promise<PostHogLike | null> {
-  if (posthogClient) return posthogClient;
-  if (typeof window === 'undefined') return null;
-  const mod = await import('posthog-js');
-  posthogClient = mod.default as unknown as PostHogLike;
-  return posthogClient;
+  return process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() || process.env.NEXT_PUBLIC_POSTHOG_TOKEN?.trim() || '';
 }
 
 function hasInitializedFlag(): boolean {
-  return initialized && !!posthogClient;
+  return initialized;
 }
 
 export async function initAnalytics(): Promise<void> {
@@ -48,11 +34,9 @@ export async function initAnalytics(): Promise<void> {
     const key = getPostHogKey();
     if (!key) return;
 
-    const client = await ensurePostHogClient();
-    if (!client) return;
-
-    client.init(key, {
+    posthog.init(key, {
       api_host: getPostHogHost(),
+      defaults: '2026-01-30',
       autocapture: true,
       capture_pageview: false,
       disable_session_recording: false,
@@ -60,9 +44,9 @@ export async function initAnalytics(): Promise<void> {
         maskAllInputs: false,
         maskTextSelector: '',
       },
-      loaded: (instance: PostHogLike) => {
+      loaded: (instance) => {
         if (process.env.NEXT_PUBLIC_POSTHOG_DEBUG === '1') {
-          instance.set_config?.({ debug: true });
+          instance.set_config({ debug: true });
         }
       },
     });
@@ -77,14 +61,14 @@ export async function initAnalytics(): Promise<void> {
 
 export function captureAnalyticsEvent(event: string, properties?: TelemetryProps): void {
   if (!getAnalyticsEnabled()) return;
-  posthogClient?.capture(event, properties);
+  posthog.capture(event, properties);
 }
 
 export function identifyAnalyticsUser(alias: string): void {
   if (!getAnalyticsEnabled()) return;
   const trimmed = alias.trim();
   if (!trimmed) return;
-  posthogClient?.identify(trimmed, { alias: trimmed });
+  posthog.identify(trimmed, { alias: trimmed });
 }
 
 export function maybeCaptureFirstGenerationSuccess(properties?: TelemetryProps): void {
