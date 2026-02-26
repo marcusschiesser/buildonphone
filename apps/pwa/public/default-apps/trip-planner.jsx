@@ -1,4 +1,4 @@
-const { useState, useEffect, useRef } = React;
+const { useState } = React;
 
 const SunIcon = () => (
   <svg
@@ -209,11 +209,9 @@ function LoadingPulse({ days }) {
 function App() {
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState(3);
-  const [itinerary, setItinerary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [streamDays, setStreamDays] = useState([]);
-  const abortRef = useRef(null);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -221,7 +219,6 @@ function App() {
 
     setLoading(true);
     setError(null);
-    setItinerary(null);
     setStreamDays([]);
 
     const schema = {

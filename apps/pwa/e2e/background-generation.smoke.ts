@@ -8,6 +8,9 @@ async function clearClientStorage(page: import('@playwright/test').Page) {
   await page.evaluate(async () => {
     localStorage.clear();
     sessionStorage.clear();
+    // Smoke flow focuses on generation, not analytics identity capture.
+    localStorage.setItem('analytics_identity_prompt_done', '1');
+    localStorage.removeItem('analytics_identity_prompt_pending');
 
     const idb = indexedDB as IDBFactory & {
       databases?: () => Promise<Array<{ name?: string }>>;
@@ -38,6 +41,7 @@ async function clearClientStorage(page: import('@playwright/test').Page) {
       request.onerror = () => resolve();
       request.onblocked = () => resolve();
     });
+
   });
 }
 

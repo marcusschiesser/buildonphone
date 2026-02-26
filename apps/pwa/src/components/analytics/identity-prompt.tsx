@@ -18,41 +18,33 @@ export function IdentityPrompt() {
   const pathname = usePathname();
   const mounted = useIsClient();
   const [requiresPassword, setRequiresPassword] = useState<boolean | null>(null);
-  const [alias, setAlias] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  const [pendingAfterLogin, setPendingAfterLogin] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const storageNonce = refreshNonce;
 
   useEffect(() => {
-    void Promise.all([getServerConfig(), Promise.resolve()]).then(([cfg]) => {
-      setRequiresPassword(cfg.requiresPassword);
-      setAlias(getIdentityAlias());
-      setDone(isIdentityPromptDone());
-      setPendingAfterLogin(isIdentityPromptPendingAfterLogin());
-    });
+    void getServerConfig().then((cfg) => setRequiresPassword(cfg.requiresPassword));
   }, []);
 
-  useEffect(() => {
-    setAlias(getIdentityAlias());
-    setDone(isIdentityPromptDone());
-    setPendingAfterLogin(isIdentityPromptPendingAfterLogin());
-  }, [pathname]);
+  const alias = mounted ? getIdentityAlias() : null;
+  const done = mounted ? isIdentityPromptDone() : false;
+  const pendingAfterLogin = mounted ? isIdentityPromptPendingAfterLogin() : false;
 
   useEffect(() => {
     if (alias) identifyAnalyticsUser(alias);
   }, [alias]);
 
   const shouldOpen = useMemo(() => {
+    void storageNonce;
     if (!mounted || pathname === '/login') return false;
     if (requiresPassword === null || alias) return false;
     if (pendingAfterLogin) return true;
     if (done) return false;
     return !requiresPassword;
-  }, [alias, done, mounted, pathname, pendingAfterLogin, requiresPassword]);
+  }, [alias, done, mounted, pathname, pendingAfterLogin, requiresPassword, storageNonce]);
 
   const onSkip = () => {
     markIdentityPromptSkipped();
-    setDone(true);
-    setPendingAfterLogin(false);
+    setRefreshNonce((prev) => prev + 1);
     captureAnalyticsEvent('identity_prompt_skipped');
   };
 
@@ -61,9 +53,7 @@ export function IdentityPrompt() {
     if (!nextAlias) return false;
     setIdentityAlias(nextAlias);
     identifyAnalyticsUser(nextAlias);
-    setAlias(nextAlias);
-    setDone(true);
-    setPendingAfterLogin(false);
+    setRefreshNonce((prev) => prev + 1);
     captureAnalyticsEvent('identity_prompt_submitted', { alias: nextAlias });
     return true;
   };
