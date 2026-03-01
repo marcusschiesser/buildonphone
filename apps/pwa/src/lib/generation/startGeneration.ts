@@ -7,10 +7,21 @@ import { localStorageAdapter } from '@/lib/storage/db';
 import { AuthRequiredError } from '@/lib/ui/aiAccess';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
-import { clearPersistedJob, persistActiveJob } from './persistJob';
+import { clearPersistedJob, getPersistedJob, persistActiveJob } from './persistJob';
 import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 import { captureAnalyticsEvent, maybeCaptureFirstGenerationSuccess } from '@/lib/analytics/telemetry';
+
+/**
+ * Tracks appIds where startGeneration is actively polling in the current page
+ * session.  resumeGenerationIfNeeded checks this to avoid launching a second
+ * parallel polling loop for the same job.
+ */
+const activeStartPolls = new Set<string>();
+
+export function hasActiveStartPoll(appId: string): boolean {
+  return activeStartPolls.has(appId);
+}
 
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
@@ -255,6 +266,7 @@ export async function startGeneration(params: {
     // Persist so the job can be resumed if the user leaves and returns.
     persistActiveJob({ jobId: created.jobId, appId: params.appId, nextVersion, appName });
     jobPersisted = true;
+    activeStartPolls.add(params.appId);
 
     const terminalJob = await pollGenerationJob(created.jobId, {
       staleTimeoutMs: jobTimeoutMs,
@@ -276,9 +288,14 @@ export async function startGeneration(params: {
     });
 
     clearPersistedJob(params.appId);
+    activeStartPolls.delete(params.appId);
     jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
     await applyCompletedJob(params.appId, terminalJob, nextVersion, appName, generationStartedAt);
   } catch (error) {
+    // The in-page poll is no longer running – let resumeGenerationIfNeeded
+    // take over on the next visibility change / interval tick.
+    activeStartPolls.delete(params.appId);
+
     if (error instanceof AuthRequiredError) {
       clearPersistedJob(params.appId);
       clearGenerationStateForRetry(params.appId);
@@ -293,11 +310,17 @@ export async function startGeneration(params: {
       // persisted entry so resumeGenerationIfNeeded can re-attach on the next
       // page visit.  Do NOT write a permanent error message to the chat and
       // keep the UI in a resumable busy state so actions don't race artifacts.
-      patchGeneration(params.appId, {
-        busy: true,
-        phase: 'running',
-        status: 'Reconnecting to generation job...',
-      });
+      //
+      // However, if the persisted entry is already gone it means
+      // resumeGenerationIfNeeded already handled the result while we were
+      // suspended – don't override its busy=false state.
+      if (getPersistedJob(params.appId)) {
+        patchGeneration(params.appId, {
+          busy: true,
+          phase: 'running',
+          status: 'Reconnecting to generation job...',
+        });
+      }
     } else {
       // Error before job creation, or a stale/stuck job – there is nothing to
       // resume.  Record a permanent error in the chat history and clean up.

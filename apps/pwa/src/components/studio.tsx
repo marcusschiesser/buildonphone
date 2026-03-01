@@ -72,9 +72,18 @@ export function Studio({
       }
     };
 
+    // Periodic retry so that transient network errors during resume don't
+    // leave the generation permanently stuck at "Reconnecting...".  The
+    // re-entry guard inside resumeGenerationIfNeeded prevents duplicate
+    // polling when a resume is already in progress.
+    const retryInterval = window.setInterval(() => {
+      void resumeGenerationIfNeeded(appId);
+    }, 5000);
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(retryInterval);
     };
   }, [appId]);
 
