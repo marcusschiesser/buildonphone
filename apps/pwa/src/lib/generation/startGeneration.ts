@@ -12,6 +12,17 @@ import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 import { captureAnalyticsEvent, maybeCaptureFirstGenerationSuccess } from '@/lib/analytics/telemetry';
 
+/**
+ * Tracks appIds where startGeneration is actively polling in the current page
+ * session.  resumeGenerationIfNeeded checks this to avoid launching a second
+ * parallel polling loop for the same job.
+ */
+const activeStartPolls = new Set<string>();
+
+export function hasActiveStartPoll(appId: string): boolean {
+  return activeStartPolls.has(appId);
+}
+
 function extractName(prompt: string): string {
   const lower = prompt.toLowerCase();
   const patterns = [/(?:make|create|build)\s+(?:a|an|me\s+a)?\s*(.+?)(?:\s+with|\s+that|\s+app|$)/i];
@@ -255,6 +266,7 @@ export async function startGeneration(params: {
     // Persist so the job can be resumed if the user leaves and returns.
     persistActiveJob({ jobId: created.jobId, appId: params.appId, nextVersion, appName });
     jobPersisted = true;
+    activeStartPolls.add(params.appId);
 
     const terminalJob = await pollGenerationJob(created.jobId, {
       staleTimeoutMs: jobTimeoutMs,
@@ -276,9 +288,14 @@ export async function startGeneration(params: {
     });
 
     clearPersistedJob(params.appId);
+    activeStartPolls.delete(params.appId);
     jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
     await applyCompletedJob(params.appId, terminalJob, nextVersion, appName, generationStartedAt);
   } catch (error) {
+    // The in-page poll is no longer running – let resumeGenerationIfNeeded
+    // take over on the next visibility change / interval tick.
+    activeStartPolls.delete(params.appId);
+
     if (error instanceof AuthRequiredError) {
       clearPersistedJob(params.appId);
       clearGenerationStateForRetry(params.appId);

@@ -3,7 +3,7 @@
 import { patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { clearPersistedJob, getPersistedJob } from './persistJob';
 import { pollGenerationJob, StaleJobError } from './pollJob';
-import { applyCompletedJob } from './startGeneration';
+import { applyCompletedJob, hasActiveStartPoll } from './startGeneration';
 import type { GenerationJobRecord } from './serverTypes';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { getServerConfig } from '@/lib/server-config';
@@ -38,6 +38,10 @@ export function resumeGenerationIfNeeded(appId: string): Promise<void> {
 async function doResume(appId: string): Promise<void> {
   const persisted = getPersistedJob(appId);
   if (!persisted) return;
+
+  // If startGeneration is actively polling for this app in the current page
+  // session, skip – a second polling path would duplicate messages/notifications.
+  if (hasActiveStartPoll(appId)) return;
 
   let res: Response;
   let jobTimeoutMs: number;
