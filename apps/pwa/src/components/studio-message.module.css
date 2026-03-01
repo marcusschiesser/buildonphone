@@ -19,8 +19,8 @@
 }
 
 .assistantBubble {
-  border: 1px solid var(--ion-border-color);
-  background: var(--ion-item-background, var(--ion-color-step-50));
+  border: 1px solid color-mix(in srgb, #d4a800 25%, transparent);
+  background: color-mix(in srgb, #fff8dc 70%, var(--ion-background-color));
 }
 
 .userBubble {
