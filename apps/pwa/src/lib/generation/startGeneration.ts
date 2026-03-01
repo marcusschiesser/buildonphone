@@ -7,7 +7,7 @@ import { localStorageAdapter } from '@/lib/storage/db';
 import { AuthRequiredError } from '@/lib/ui/aiAccess';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
-import { clearPersistedJob, persistActiveJob } from './persistJob';
+import { clearPersistedJob, getPersistedJob, persistActiveJob } from './persistJob';
 import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 import { captureAnalyticsEvent, maybeCaptureFirstGenerationSuccess } from '@/lib/analytics/telemetry';
@@ -293,11 +293,17 @@ export async function startGeneration(params: {
       // persisted entry so resumeGenerationIfNeeded can re-attach on the next
       // page visit.  Do NOT write a permanent error message to the chat and
       // keep the UI in a resumable busy state so actions don't race artifacts.
-      patchGeneration(params.appId, {
-        busy: true,
-        phase: 'running',
-        status: 'Reconnecting to generation job...',
-      });
+      //
+      // However, if the persisted entry is already gone it means
+      // resumeGenerationIfNeeded already handled the result while we were
+      // suspended – don't override its busy=false state.
+      if (getPersistedJob(params.appId)) {
+        patchGeneration(params.appId, {
+          busy: true,
+          phase: 'running',
+          status: 'Reconnecting to generation job...',
+        });
+      }
     } else {
       // Error before job creation, or a stale/stuck job – there is nothing to
       // resume.  Record a permanent error in the chat history and clean up.
