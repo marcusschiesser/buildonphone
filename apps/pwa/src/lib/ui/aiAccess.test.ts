@@ -58,6 +58,21 @@ describe('aiAccess', () => {
     });
   });
 
+  it('does not require BYOK when fake generation is enabled', () => {
+    expect(
+      resolveAiAccessRequirements({
+        requiresPassword: false,
+        authenticated: true,
+        hasServerKey: false,
+        hasByokKey: false,
+        fakeGenerationEnabled: true,
+      })
+    ).toEqual({
+      needsPassword: false,
+      needsByok: false,
+    });
+  });
+
   it('forces password re-entry when requested explicitly', () => {
     expect(
       resolveAiAccessRequirements({

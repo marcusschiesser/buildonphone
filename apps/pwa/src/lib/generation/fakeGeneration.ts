@@ -16,15 +16,15 @@ export async function runFakeGeneration(input: {
   onToolCall?: (target: string) => void;
   onText?: (delta: string) => void;
 }): Promise<{ text: string; artifacts: Record<string, string> }> {
-  input.onStatus?.('Preparing generation');
+  await input.onStatus?.('Preparing generation');
   await sleep(60);
 
-  input.onToolCall?.('write_app_jsx');
-  input.onStatus?.('Running tool #1');
-  input.onText?.('Generating a deterministic CI app artifact...');
+  await input.onToolCall?.('write_app_jsx');
+  await input.onStatus?.('Running tool #1');
+  await input.onText?.('Generating a deterministic CI app artifact...');
   await sleep(80);
 
-  input.onStatus?.('Syncing artifacts');
+  await input.onStatus?.('Syncing artifacts');
   await sleep(60);
 
   const appJsx = `function App() {

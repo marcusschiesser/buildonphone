@@ -48,6 +48,7 @@ export function useAiAccessGate() {
         authenticated,
         hasServerKey,
         hasByokKey,
+        fakeGenerationEnabled: process.env.NEXT_PUBLIC_FAKE_GENERATION === '1' && options.purpose === 'generation',
         forcePassword: options.forcePassword,
       });
 
