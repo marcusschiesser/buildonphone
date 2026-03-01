@@ -1,5 +1,6 @@
 import { getAnthropicKey } from '../security/byok';
 import { getServerConfig } from '../server-config';
+import { AuthRequiredError } from './aiAccess';
 import { normalizePreviewAiInput, type PreviewAiInput } from './previewAiBridgeCore';
 
 export {
@@ -88,6 +89,9 @@ export async function executePreviewAiRequest(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthRequiredError();
+    }
     const contentType = response.headers.get('content-type') ?? '';
     const message = contentType.includes('application/json')
       ? ((await response.json().catch(() => null)) as { error?: string } | null)?.error

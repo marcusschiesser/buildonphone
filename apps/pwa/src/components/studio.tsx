@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonBackButton,
@@ -23,6 +23,7 @@ import { clearGeneration, consumeGenerationResult, getGeneration, useGeneration 
 import { requestNotificationPermission } from '@/lib/generation/notify';
 import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
 import { startGeneration } from '@/lib/generation/startGeneration';
+import { isAuthRequiredError, useAiAccessGate } from '@/lib/ui/aiAccess';
 import { buildFixPrompt, type PreviewFixPayload } from '@/lib/ui/previewRuntimeError';
 import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { PreviewFrame } from './preview';
@@ -50,6 +51,7 @@ export function Studio({
   const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
   const [appCreated, setAppCreated] = useState(Boolean(initialApp));
   const notificationPermissionRequestedRef = useRef(false);
+  const { ensureAiAccess, modal } = useAiAccessGate();
   const gen = useGeneration(appId);
   const busy = gen?.busy ?? false;
   const status = gen?.status ?? 'Idle';
@@ -109,35 +111,65 @@ export function Studio({
     };
   }, [appId, gen?.result]);
 
+  const runGeneration = useCallback(
+    async (params: Parameters<typeof startGeneration>[0], options?: { allowRetry?: boolean }) => {
+      try {
+        await startGeneration(params);
+      } catch (error) {
+        if (!options?.allowRetry || !isAuthRequiredError(error)) {
+          throw error;
+        }
+
+        const access = await ensureAiAccess({ purpose: 'generation', forcePassword: true });
+        if (!access.ok) return;
+        await startGeneration(params);
+      }
+    },
+    [ensureAiAccess]
+  );
+
   const send = () => {
     const text = input.trim();
     if (!text || busy || gen?.result) return;
-    const tempUserMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      appId,
-      role: 'user',
-      content: text,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempUserMessage]);
-    setInput('');
 
     if (!notificationPermissionRequestedRef.current) {
       notificationPermissionRequestedRef.current = true;
       void requestNotificationPermission();
     }
 
-    void startGeneration({
-      appId,
-      text,
-      source: 'chat_send',
-      messages,
-      version,
-      files,
-      theme: initialApp?.theme ?? '',
-      appCreated,
-      appNameHint: initialApp?.name,
-    });
+    void (async () => {
+      const access = await ensureAiAccess({ purpose: 'generation' });
+      if (!access.ok) return;
+
+      const tempUserMessage: ChatMessage = {
+        id: `temp-${Date.now()}`,
+        appId,
+        role: 'user',
+        content: text,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, tempUserMessage]);
+      setInput('');
+
+      try {
+        await runGeneration(
+          {
+            appId,
+            text,
+            source: 'chat_send',
+            messages,
+            version,
+            files,
+            theme: initialApp?.theme ?? '',
+            appCreated,
+            appNameHint: initialApp?.name,
+          },
+          { allowRetry: true }
+        );
+      } catch {
+        // startGeneration persists non-auth failures into generation state.
+      }
+    })();
   };
 
   const onPreviewFix = (payload: PreviewFixPayload) => {
@@ -152,17 +184,29 @@ export function Studio({
       notificationPermissionRequestedRef.current = true;
       void requestNotificationPermission();
     }
-    void startGeneration({
-      appId,
-      text: fixPrompt,
-      source: 'preview_fix',
-      messages,
-      version,
-      files,
-      theme: initialApp?.theme ?? '',
-      appCreated,
-      appNameHint: initialApp?.name,
-    });
+    void (async () => {
+      const access = await ensureAiAccess({ purpose: 'generation' });
+      if (!access.ok) return;
+
+      try {
+        await runGeneration(
+          {
+            appId,
+            text: fixPrompt,
+            source: 'preview_fix',
+            messages,
+            version,
+            files,
+            theme: initialApp?.theme ?? '',
+            appCreated,
+            appNameHint: initialApp?.name,
+          },
+          { allowRetry: true }
+        );
+      } catch {
+        // startGeneration persists non-auth failures into generation state.
+      }
+    })();
   };
 
   const threadMessages = useMemo(
@@ -237,7 +281,7 @@ export function Studio({
                 ))}
               </IonList>
           ) : (
-              <PreviewFrame files={files} onFixError={onPreviewFix} />
+              <PreviewFrame files={files} onFixError={onPreviewFix} ensureAiAccess={ensureAiAccess} />
           )}
       </IonContent>
       <IonFooter>
@@ -258,6 +302,7 @@ export function Studio({
         ) : null}
         <MobileTabs active="studio" />
       </IonFooter>
+      {modal}
     </IonPage>
   );
 }

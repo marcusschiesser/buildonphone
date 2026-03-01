@@ -4,6 +4,7 @@ import type { ChatMessage } from '@/types';
 import { getAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
 import { localStorageAdapter } from '@/lib/storage/db';
+import { AuthRequiredError } from '@/lib/ui/aiAccess';
 import { getGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
 import { notifyGenerationComplete } from './notify';
 import { clearPersistedJob, persistActiveJob } from './persistJob';
@@ -231,6 +232,9 @@ export async function startGeneration(params: {
     });
 
     if (!createRes.ok) {
+      if (createRes.status === 401) {
+        throw new AuthRequiredError();
+      }
       const bodyText = await createRes.text();
       throw new Error(`Failed to create generation job: ${bodyText || createRes.status}`);
     }
@@ -275,6 +279,12 @@ export async function startGeneration(params: {
     jobPersisted = false; // persisted entry gone – failures past this point are not recoverable
     await applyCompletedJob(params.appId, terminalJob, nextVersion, appName, generationStartedAt);
   } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      clearPersistedJob(params.appId);
+      clearGenerationStateForRetry(params.appId);
+      throw error;
+    }
+
     const message = error instanceof Error ? error.message : String(error);
 
     if (jobPersisted && !(error instanceof StaleJobError)) {
@@ -319,4 +329,16 @@ export async function startGeneration(params: {
       notifyGenerationComplete({ appName, ok: false, error: message });
     }
   }
+}
+
+function clearGenerationStateForRetry(appId: string) {
+  patchGeneration(appId, {
+    busy: false,
+    phase: 'idle',
+    status: 'Idle',
+    streamedText: '',
+    currentToolCall: null,
+    toolCallCount: 0,
+    result: undefined,
+  });
 }

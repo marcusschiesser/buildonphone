@@ -18,7 +18,6 @@ import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClie
 import { cleanupCompletedGenerations, useAnyBusy, useGenerationMap } from '@/lib/generation/generationStore';
 import { getAllPersistedJobs } from '@/lib/generation/persistJob';
 import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
-import { ByokPanel } from '@/components/byok';
 import { AppCard } from '@/components/apps/app-card';
 import { InstallButton } from '@/components/install-button';
 import { AppToolbar } from '@/components/navigation/app-toolbar';
@@ -115,9 +114,6 @@ export default function HomePage() {
       </IonHeader>
 
       <IonContent>
-
-            <ByokPanel />
-
           <IonGrid fixed>
             <IonRow className="ion-align-items-stretch">
               {appsLoaded && apps.length === 0 ? (

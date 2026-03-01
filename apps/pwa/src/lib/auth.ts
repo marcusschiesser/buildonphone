@@ -1,3 +1,5 @@
+import type { NextRequest } from 'next/server';
+
 export const COOKIE_NAME = 'buildonphone_auth';
 const HMAC_MESSAGE = 'buildonphone-auth-v1';
 const TEXT_ENCODER = new TextEncoder();
@@ -38,4 +40,11 @@ export async function verifyAuthCookie(cookieValue: string): Promise<boolean> {
   if (!password) return false;
   const expected = await computeAuthToken(password);
   return timingSafeEqualString(cookieValue, expected);
+}
+
+export async function isRequestAuthorized(req: Pick<NextRequest, 'cookies'>): Promise<boolean> {
+  if (!isPasswordProtectionEnabled()) return true;
+
+  const cookieValue = req.cookies.get(COOKIE_NAME)?.value;
+  return !!cookieValue && (await verifyAuthCookie(cookieValue));
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
   PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
@@ -10,6 +10,7 @@ import {
   executePreviewAiRequest,
   parsePreviewAiRequestEvent,
 } from '@/lib/ui/previewAiBridge';
+import { isAuthRequiredError } from '@/lib/ui/aiAccess';
 import {
   PREVIEW_RUNTIME_ERROR_EVENT_TYPE,
   type PreviewFixPayload,
@@ -189,10 +190,12 @@ export function PreviewFrame({
   files,
   className,
   onFixError,
+  ensureAiAccess,
 }: {
   files: Record<string, string>;
   className?: string;
   onFixError?: (payload: PreviewFixPayload) => void;
+  ensureAiAccess?: (options: { purpose: 'preview-ai'; forcePassword?: boolean }) => Promise<{ ok: boolean }>;
 }) {
   const hasCode = Boolean(files['app.jsx']?.trim());
   const srcDoc = useMemo(() => buildPreviewHtml(files), [files]);
@@ -204,6 +207,95 @@ export function PreviewFrame({
   useEffect(() => {
     srcDocRef.current = srcDoc;
   }, [srcDoc]);
+
+  const handlePreviewAiRequest = useCallback(async (aiRequest: ReturnType<typeof parsePreviewAiRequestEvent>) => {
+    if (!aiRequest) return;
+
+    const target = iframeRef.current?.contentWindow;
+    if (!target) return;
+
+    const postResponse = (payload: Record<string, unknown>) => {
+      target.postMessage(
+        {
+          requestId: aiRequest.requestId,
+          ...payload,
+        },
+        '*'
+      );
+    };
+
+    const tryExecute = async () => {
+      if (ensureAiAccess) {
+        const access = await ensureAiAccess({ purpose: 'preview-ai' });
+        if (!access.ok) {
+          postResponse({
+            type: PREVIEW_AI_ERROR_EVENT_TYPE,
+            error: 'AI request cancelled.',
+          });
+          return false;
+        }
+      }
+
+      await executePreviewAiRequest(aiRequest.input, {
+        onTextChunk: (textChunk) => {
+          postResponse({
+            type: PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
+            text: textChunk,
+          });
+        },
+        onObjectChunk: (objectChunk) => {
+          postResponse({
+            type: PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
+            object: objectChunk,
+          });
+        },
+      });
+
+      postResponse({ type: PREVIEW_AI_DONE_EVENT_TYPE });
+      return true;
+    };
+
+    try {
+      await tryExecute();
+    } catch (error) {
+      if (isAuthRequiredError(error) && ensureAiAccess) {
+        const access = await ensureAiAccess({ purpose: 'preview-ai', forcePassword: true });
+        if (access.ok) {
+          try {
+            await executePreviewAiRequest(aiRequest.input, {
+              onTextChunk: (textChunk) => {
+                postResponse({
+                  type: PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
+                  text: textChunk,
+                });
+              },
+              onObjectChunk: (objectChunk) => {
+                postResponse({
+                  type: PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
+                  object: objectChunk,
+                });
+              },
+            });
+            postResponse({ type: PREVIEW_AI_DONE_EVENT_TYPE });
+            return;
+          } catch (retryError) {
+            const message = retryError instanceof Error ? retryError.message : String(retryError);
+            postResponse({
+              type: PREVIEW_AI_ERROR_EVENT_TYPE,
+              error: message,
+            });
+            return;
+          }
+        }
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      postResponse({
+        type: PREVIEW_AI_ERROR_EVENT_TYPE,
+        error: message,
+      });
+    }
+  }, [ensureAiAccess]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
@@ -221,52 +313,14 @@ export function PreviewFrame({
       const aiRequest = parsePreviewAiRequestEvent(event.data);
       if (!aiRequest) return;
 
-      void (async () => {
-        const target = iframeRef.current?.contentWindow;
-        if (!target) return;
-
-        const postResponse = (payload: Record<string, unknown>) => {
-          target.postMessage(
-            {
-              requestId: aiRequest.requestId,
-              ...payload,
-            },
-            '*'
-          );
-        };
-
-        try {
-          await executePreviewAiRequest(aiRequest.input, {
-            onTextChunk: (textChunk) => {
-              postResponse({
-                type: PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
-                text: textChunk,
-              });
-            },
-            onObjectChunk: (objectChunk) => {
-              postResponse({
-                type: PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
-                object: objectChunk,
-              });
-            },
-          });
-
-          postResponse({ type: PREVIEW_AI_DONE_EVENT_TYPE });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          postResponse({
-            type: PREVIEW_AI_ERROR_EVENT_TYPE,
-            error: message,
-          });
-        }
-      })();
+      void handlePreviewAiRequest(aiRequest);
     };
 
     window.addEventListener('message', onMessage);
     return () => {
       window.removeEventListener('message', onMessage);
     };
-  }, []);
+  }, [handlePreviewAiRequest]);
 
   const activeRuntimeError = runtimeError?.srcDoc === srcDoc ? runtimeError.payload : null;
 

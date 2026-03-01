@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { jsonSchema, Output, streamText, type ModelMessage } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
+import { isRequestAuthorized } from '@/lib/auth';
 import { DEFAULT_MODEL } from '@/lib/model';
 import { normalizePreviewAiInput, type PreviewAiInput } from '@/lib/ui/previewAiBridgeCore';
 
@@ -37,6 +38,10 @@ function toModelMessages(messages: NonNullable<ReturnType<typeof normalizePrevie
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isRequestAuthorized(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = (await req.json().catch(() => null)) as { input?: PreviewAiInput } | null;
   if (!body?.input) {
     return NextResponse.json({ error: 'Missing preview AI input.' }, { status: 400 });

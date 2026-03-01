@@ -3,6 +3,7 @@ import { safeRandomId } from '@/lib/id';
 import { createJob } from '@/lib/generation/jobStore';
 import { runGenerationJob } from '@/lib/generation/serverWorker';
 import type { GenerationJobRecord, GenerationJobRequest } from '@/lib/generation/serverTypes';
+import { isRequestAuthorized } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -21,6 +22,10 @@ function isValidRequest(body: unknown): body is GenerationJobRequest {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isRequestAuthorized(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!isValidRequest(body)) {
     return NextResponse.json({ error: 'Invalid generation job request.' }, { status: 400 });

@@ -5,12 +5,14 @@ import { useIsClient } from '@/lib/ui/useIsClient';
 import { useParams } from 'next/navigation';
 import { IonContent, IonPage } from '@ionic/react';
 import { localStorageAdapter } from '@/lib/storage/db';
+import { useAiAccessGate } from '@/lib/ui/aiAccess';
 import { PreviewFrame } from '@/components/preview';
 import { RunBackOverlay } from '@/components/run-back-overlay';
 import styles from './page.module.css';
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
+  const { ensureAiAccess, modal } = useAiAccessGate();
   const [files, setFiles] = useState<Record<string, string>>({
     'app.jsx': '',
   });
@@ -64,10 +66,11 @@ export default function RunPage() {
     <IonPage>
       <IonContent fullscreen>
         <div className={styles.fillVh}>
-          <PreviewFrame files={files} className="preview-frame--full" />
+          <PreviewFrame files={files} className="preview-frame--full" ensureAiAccess={ensureAiAccess} />
           <RunBackOverlay />
         </div>
       </IonContent>
+      {modal}
     </IonPage>
   );
 }

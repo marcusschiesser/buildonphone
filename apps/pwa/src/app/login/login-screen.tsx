@@ -73,6 +73,16 @@ export default function LoginScreen() {
           <IonCard>
             <IonCardContent>
               <IonNote className="ion-display-block ion-margin-bottom">buildonphone</IonNote>
+              <IonNote className="ion-display-block ion-margin-bottom">
+                Browsing the app is open. This password only unlocks AI generation features.
+              </IonNote>
+              <IonNote className="ion-display-block ion-margin-bottom">
+                To get the password, send a message to{' '}
+                <a href="https://www.linkedin.com/in/marcusschiesser/" target="_blank" rel="noreferrer">
+                  Marcus Schiesser on LinkedIn
+                </a>
+                .
+              </IonNote>
               <form onSubmit={handleSubmit}>
                 <IonItem lines="inset">
                   <IonLabel position="stacked">Password</IonLabel>

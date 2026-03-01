@@ -31,6 +31,9 @@ export async function resumeGenerationIfNeeded(appId: string): Promise<void> {
   }
 
   if (!res.ok) {
+    if (res.status === 401) {
+      return;
+    }
     // Job expired or not found – drop the persisted entry.
     clearPersistedJob(appId);
     return;
