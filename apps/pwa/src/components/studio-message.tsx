@@ -13,9 +13,12 @@ export function StudioMessage({ message }: { message: StudioThreadMessage }) {
 
   const handleCopy = () => {
     if (message.isProgress) return;
-    void navigator.clipboard.writeText(message.content).then(() => {
+    if (!navigator.clipboard?.writeText) return;
+    navigator.clipboard.writeText(message.content).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // Clipboard write denied or unavailable — silently ignore
     });
   };
 
