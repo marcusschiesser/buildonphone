@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { SuApp } from '@/types';
 import {
   IonBadge,
+  IonAlert,
   IonButton,
   IonCard,
   IonCardContent,
@@ -33,6 +34,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
   const router = useRouter();
   const [isRenaming, setIsRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(app.name);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -169,12 +171,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
                     fill="outline"
                     color="danger"
                     disabled={generating}
-                    onClick={() => {
-                      void (async () => {
-                        await onDelete(app.id);
-                        captureAnalyticsEvent('app_deleted', { appId: app.id });
-                      })();
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                   >
                     Delete
                   </IonButton>
@@ -184,6 +181,28 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
           )}
           </IonRow>
         </IonGrid>
+        <IonAlert
+          isOpen={showDeleteConfirm}
+          onDidDismiss={() => setShowDeleteConfirm(false)}
+          header="Delete App"
+          message={`Are you sure you want to delete \"${app.name}\"? This cannot be undone.`}
+          buttons={[
+            {
+              text: 'Cancel',
+              role: 'cancel',
+            },
+            {
+              text: 'Delete',
+              role: 'destructive',
+              handler: () => {
+                void (async () => {
+                  await onDelete(app.id);
+                  captureAnalyticsEvent('app_deleted', { appId: app.id });
+                })();
+              },
+            },
+          ]}
+        />
       </IonCardContent>
     </IonCard>
   );
