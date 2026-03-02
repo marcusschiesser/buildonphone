@@ -94,6 +94,35 @@ async function doResume(appId: string): Promise<void> {
       return;
     }
 
+    // Job is still marked as running on the server.  Before entering the poll
+    // loop, check whether the worker is already dead: if progress.updatedAt is
+    // older than the server-side job timeout, the worker crashed or the server
+    // restarted and this job will never complete on its own.
+    const elapsed = Date.now() - (job.progress.updatedAt ?? 0);
+    if (elapsed > jobTimeoutMs) {
+      clearPersistedJob(appId);
+      const staleMsg =
+        'Generation appears stuck – the server stopped reporting progress. ' +
+        'Please try again.';
+      let assistantMessage;
+      try {
+        assistantMessage = await localStorageAdapter.appendMessage(appId, {
+          appId,
+          role: 'assistant',
+          content: `Error: ${staleMsg}`,
+        });
+      } catch {
+        // Storage write failed – still ensure we clear the busy state below.
+      }
+      setGenerationResult(appId, {
+        ok: false,
+        error: staleMsg,
+        ...(assistantMessage ? { assistantMessage } : {}),
+        completedAt: Date.now(),
+      });
+      return;
+    }
+
     // Job is still running on the server – resume polling.
     const terminalJob = await pollGenerationJob(persisted.jobId, {
       staleTimeoutMs: jobTimeoutMs,
