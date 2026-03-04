@@ -81,6 +81,12 @@ ion-toolbar.app-toolbar .app-toolbar__title {
   align-items: stretch;
 }
 
+.app-card-title-input {
+  --padding-start: 0;
+  --padding-end: 0;
+  --highlight-color-focused: transparent;
+}
+
 .app-card-description {
   display: -webkit-box;
   -webkit-box-orient: vertical;

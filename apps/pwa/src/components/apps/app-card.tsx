@@ -15,8 +15,6 @@ import {
   IonCol,
   IonGrid,
   IonInput,
-  IonItem,
-  IonLabel,
   IonNote,
   IonRow,
   IonText,
@@ -42,6 +40,12 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
     setIsRenaming(false);
     setNameDraft(app.name);
     setError('');
+  };
+
+  const startRename = () => {
+    setNameDraft(app.name);
+    setError('');
+    setIsRenaming(true);
   };
 
   const saveRename = async () => {
@@ -81,35 +85,35 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
             {generating ? <IonBadge color="tertiary">Generating...</IonBadge> : null}
           </>
         </IonCardSubtitle>
-        <IonCardTitle>{app.name}</IonCardTitle>
+        <IonCardTitle>
+          {isRenaming ? (
+            <IonInput
+              className="app-card-title-input"
+              aria-label="App name"
+              maxlength={80}
+              value={nameDraft}
+              autofocus
+              onIonInput={(event) => setNameDraft(event.detail.value ?? '')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void saveRename();
+                if (event.key === 'Escape') cancelRename();
+              }}
+            />
+          ) : (
+            app.name
+          )}
+        </IonCardTitle>
       </IonCardHeader>
 
       <IonCardContent className="app-card-content">
-        {isRenaming ? (
-          <>
-            <IonLabel className="ion-display-block ion-margin-bottom">App Name</IonLabel>
-            <IonItem lines="inset">
-              <IonInput
-                maxlength={80}
-                value={nameDraft}
-                onIonInput={(event) => setNameDraft(event.detail.value ?? '')}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') void saveRename();
-                  if (event.key === 'Escape') cancelRename();
-                }}
-              />
-            </IonItem>
-            {error ? (
-              <IonText color="danger" className="ion-display-block ion-margin-top">
-                {error}
-              </IonText>
-            ) : null}
-          </>
-        ) : (
-          <IonNote color="medium" className="app-card-description">
-            {app.description || 'No description'}
-          </IonNote>
-        )}
+        <IonNote color="medium" className="app-card-description">
+          {app.description || 'No description'}
+        </IonNote>
+        {error ? (
+          <IonText color="danger" className="ion-display-block ion-margin-top">
+            {error}
+          </IonText>
+        ) : null}
 
         <IonGrid className="ion-no-padding ion-margin-top app-card-actions">
           <IonRow className={isRenaming ? 'app-card-actions-row' : 'app-card-actions-row ion-justify-content-between'}>
@@ -161,7 +165,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
                     color="medium"
                     onClick={() => {
                       captureAnalyticsEvent('app_rename_started', { appId: app.id });
-                      setIsRenaming(true);
+                      startRename();
                     }}
                   >
                     Rename
