@@ -100,7 +100,15 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
               }}
             />
           ) : (
-            app.name
+            <span
+              style={{ cursor: 'text' }}
+              onClick={() => {
+                captureAnalyticsEvent('app_rename_started', { appId: app.id });
+                startRename();
+              }}
+            >
+              {app.name}
+            </span>
           )}
         </IonCardTitle>
       </IonCardHeader>
