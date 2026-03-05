@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IonText } from '@ionic/react';
 import {
   PREVIEW_AI_CHUNK_OBJECT_EVENT_TYPE,
   PREVIEW_AI_CHUNK_TEXT_EVENT_TYPE,
@@ -21,6 +22,7 @@ import { PreviewRuntimeErrorPanel } from './runtime-error-panel';
 import styles from './preview-frame.module.css';
 
 function htmlTemplate(code: string): string {
+  const serializedCode = JSON.stringify(code).replace(/<\/script>/gi, '<\\/script>');
   return `<!doctype html>
 <html>
   <head>
@@ -158,8 +160,12 @@ function htmlTemplate(code: string): string {
         }
 
         window.addEventListener('error', function (event) {
-          const stack = event && event.error && event.error.stack ? event.error.stack : '';
-          reportRuntimeError(event && event.message ? event.message : 'Unhandled error', stack);
+          var baseMessage = event && event.message ? event.message : 'Unhandled error';
+          var errorName = event && event.error && event.error.name ? event.error.name : '';
+          var stack = event && event.error && event.error.stack ? event.error.stack : '';
+
+          var withName = errorName && baseMessage.indexOf(errorName) !== 0 ? errorName + ': ' + baseMessage : baseMessage;
+          reportRuntimeError(withName, stack);
         });
 
         window.addEventListener('unhandledrejection', function (event) {
@@ -173,9 +179,31 @@ function htmlTemplate(code: string): string {
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-    <script type="text/babel">
-${code}
+    <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    <script>
+      (function () {
+        try {
+          var source = ${serializedCode};
+          var transformed = Babel.transform(source, {
+            presets: ['react'],
+            filename: '/Inline Babel script',
+          });
+          (0, eval)(transformed && transformed.code ? transformed.code : '');
+        } catch (error) {
+          var message = error && error.message ? error.message : String(error);
+          var stack = error && error.stack ? error.stack : '';
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              {
+                type: '${PREVIEW_RUNTIME_ERROR_EVENT_TYPE}',
+                errorMessage: message || 'Unknown runtime error',
+                stack: stack || '',
+              },
+              '*'
+            );
+          }
+        }
+      })();
     <\/script>
   </body>
 </html>`;
@@ -343,6 +371,13 @@ export function PreviewFrame({
         allow="camera; microphone; geolocation; payment"
         sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
       />
+      {activeRuntimeError ? (
+        <div className={styles.unavailableOverlay}>
+          <IonText color="medium" className="ion-text-center">
+            <p className="ion-no-margin">This app is currently not available.</p>
+          </IonText>
+        </div>
+      ) : null}
       {activeRuntimeError ? (
         <PreviewRuntimeErrorPanel error={activeRuntimeError} onFix={onFixError ? requestFix : undefined} />
       ) : null}

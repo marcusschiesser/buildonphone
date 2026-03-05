@@ -184,6 +184,17 @@ export function Studio({
   const onPreviewFix = (payload: PreviewFixPayload) => {
     if (busy || gen?.result) return;
     const fixPrompt = buildFixPrompt(payload);
+    const tempUserMessage: ChatMessage = {
+      id: `temp-fix-${Date.now()}`,
+      appId,
+      role: 'user',
+      content: fixPrompt,
+      createdAt: new Date().toISOString(),
+    };
+
+    setActiveTab('chat');
+    setMessages((prev) => [...prev, tempUserMessage]);
+
     captureAnalyticsEvent('preview_fix_requested', {
       appId,
       errorMessage: payload.errorMessage,

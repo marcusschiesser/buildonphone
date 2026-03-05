@@ -6,6 +6,8 @@ General Requirements:
 - Do not use import/export in app.jsx.
 - Use Tailwind utility classes for styling.
 - Assume React and ReactDOM globals are available.
+- Use ASCII quote delimiters for strings (' or ") and escape inner quotes correctly. Never use typographic/smart quote delimiters (for example „ ” ‘ ’) as string boundaries.
+- If user-facing copy needs curly quotes, keep delimiters ASCII and place curly quotes inside the string content safely.
 - For follow-up edits, use current runtime file contents as source of truth and make targeted changes instead of unrelated rewrites.
 - For apps with user-managed data, persist state to localStorage: initialize state from localStorage with try/catch fallback defaults, then sync updates in useEffect so data survives reloads.
 - Do not run package manager commands or rely on local npm dependencies.
