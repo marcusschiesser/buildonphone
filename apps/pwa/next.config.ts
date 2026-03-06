@@ -1,17 +1,23 @@
 import type { NextConfig } from 'next';
 
+const clerkSources = [
+  'https://*.clerk.com',
+  'https://*.clerk.accounts.dev',
+  'https://clerk.buildonphone.com',
+].join(' ');
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://*.posthog.com https://*.i.posthog.com https://*.clerk.com https://*.clerk.accounts.dev",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://*.posthog.com https://*.i.posthog.com ${clerkSources}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https: https://*.clerk.com https://*.clerk.accounts.dev",
+  `img-src 'self' data: blob: https: ${clerkSources}`,
   "font-src 'self' data: https:",
-  "connect-src 'self' http: https: ws: wss: blob: data: https://*.clerk.com https://*.clerk.accounts.dev",
+  `connect-src 'self' http: https: ws: wss: blob: data: ${clerkSources}`,
   "worker-src 'self' blob:",
-  "frame-src 'self' blob: data: https://stackblitz.com https://*.stackblitz.com https://*.clerk.com https://*.clerk.accounts.dev",
+  `frame-src 'self' blob: data: https://stackblitz.com https://*.stackblitz.com ${clerkSources}`,
 ].join('; ');
 
 const nextConfig: NextConfig = {
