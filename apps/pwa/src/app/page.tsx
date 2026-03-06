@@ -117,11 +117,9 @@ export default function HomePage() {
       <IonPage>
       <IonHeader translucent>
         <AppToolbar
+          start={<InstallButton />}
           end={
-            <>
-              <InstallButton />
-              <SignOutButton />
-            </>
+            <SignOutButton />
           }
         />
       </IonHeader>
