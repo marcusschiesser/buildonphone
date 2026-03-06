@@ -11,6 +11,7 @@ export interface ServerAgentInput {
   apiKey: string;
   theme: string;
   messages: { role: 'user' | 'assistant'; content: string }[];
+  model?: string;
   baseFiles?: Record<string, string>;
   baseVersion?: number;
   onText?: (delta: string) => void;
@@ -96,7 +97,7 @@ export async function runServerAgent(input: ServerAgentInput): Promise<ServerAge
     });
 
     const agent = new CodingAgent({
-      model: anthropic(DEFAULT_MODEL),
+      model: anthropic(input.model ?? DEFAULT_MODEL),
       runtime,
       cwd: '.',
       stopWhen: stepCountIs(8),

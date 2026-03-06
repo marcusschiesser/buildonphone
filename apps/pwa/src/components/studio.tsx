@@ -30,6 +30,7 @@ import { getStudioThreadMessages } from '@/lib/ui/studioThread';
 import { PreviewFrame } from './preview';
 import { StudioMessage } from './studio-message';
 import { AppToolbar } from './navigation/app-toolbar';
+import { GenerationModelControl } from './navigation/generation-model-control';
 import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
 import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
@@ -324,7 +325,7 @@ export function Studio({
   return (
     <IonPage>
       <IonHeader translucent>
-        <AppToolbar start={<IonBackButton defaultHref="/" text="Back" />} />
+        <AppToolbar start={<IonBackButton defaultHref="/" text="Back" />} end={<GenerationModelControl />} />
         <IonToolbar>
           <IonSegment value={activeTab} onIonChange={(event) => onTabChange((event.detail.value as 'chat' | 'preview') ?? 'chat')}>
             <IonSegmentButton value="chat">

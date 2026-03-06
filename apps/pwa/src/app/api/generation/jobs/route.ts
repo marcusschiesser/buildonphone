@@ -4,6 +4,7 @@ import { safeRandomId } from '@/lib/id';
 import { createJob } from '@/lib/generation/jobStore';
 import { runGenerationJob } from '@/lib/generation/serverWorker';
 import type { GenerationJobRecord, GenerationJobRequest } from '@/lib/generation/serverTypes';
+import { resolveHostModel } from '@/lib/model';
 
 export const runtime = 'nodejs';
 
@@ -17,7 +18,8 @@ function isValidRequest(body: unknown): body is GenerationJobRequest {
     typeof v.version === 'number' &&
     v.baseFiles !== null &&
     typeof v.baseFiles === 'object' &&
-    typeof v.theme === 'string'
+    typeof v.theme === 'string' &&
+    (v.model === undefined || typeof v.model === 'string')
   );
 }
 
@@ -32,6 +34,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid generation job request.' }, { status: 400 });
   }
 
+  let resolvedModel: string;
+  try {
+    resolvedModel = resolveHostModel(body.model, { userId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid model selection.';
+    return NextResponse.json({ error: message }, { status: 403 });
+  }
+
   const jobId = safeRandomId('genjob');
   const now = Date.now();
 
@@ -39,7 +49,10 @@ export async function POST(req: NextRequest) {
     id: jobId,
     userId,
     status: 'queued',
-    request: body,
+    request: {
+      ...body,
+      model: resolvedModel,
+    },
     statusText: 'Queued prompt',
     streamedText: '',
     toolCallCount: 0,

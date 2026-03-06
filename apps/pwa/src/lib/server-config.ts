@@ -1,6 +1,8 @@
 type ServerConfig = {
   jobTimeoutMs: number;
   shareEnabled: boolean;
+  defaultModel: string;
+  generationModelOverrideEnabled: boolean;
 };
 
 let cache: ServerConfig | null = null;

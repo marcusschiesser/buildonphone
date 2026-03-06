@@ -3,6 +3,7 @@
 import type { ChatMessage } from '@/types';
 import { getAnthropicKey } from '@/lib/security/byok';
 import { getServerConfig } from '@/lib/server-config';
+import { getSelectedModelPreference, setSelectedModelPreference } from '@/lib/model-selection';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { AuthRequiredError } from '@/lib/ui/aiAccess';
 import { getGeneration, hydrateGeneration, patchGeneration, setGenerationResult, startGenerationState } from './generationStore';
@@ -239,7 +240,11 @@ export async function startGeneration(params: {
     });
 
     const fakeGenerationEnabled = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
-    const [{ jobTimeoutMs }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+    const [{ jobTimeoutMs, generationModelOverrideEnabled }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+    const selectedModel = generationModelOverrideEnabled ? getSelectedModelPreference() : null;
+    if (!generationModelOverrideEnabled) {
+      setSelectedModelPreference('');
+    }
     if (!fakeGenerationEnabled && !apiKey) {
       const message = 'Missing Anthropic key';
       const assistantMessage = await appendAssistantMessageOnce(params.appId, {
@@ -276,6 +281,7 @@ export async function startGeneration(params: {
       baseFiles,
       theme: params.theme,
       appNameHint: appName,
+      ...(selectedModel ? { model: selectedModel } : {}),
     };
 
     const createRes = await fetch('/api/generation/jobs', {

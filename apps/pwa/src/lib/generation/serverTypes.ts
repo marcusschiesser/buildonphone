@@ -17,6 +17,7 @@ export interface GenerationJobRequest {
   baseFiles: Record<string, string>;
   theme: string;
   appNameHint?: string;
+  model?: string;
 }
 
 export interface GenerationJobResult {

@@ -97,6 +97,7 @@ async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string
     apiKey,
     theme: job.request.theme,
     messages: job.request.messages,
+    model: job.request.model,
     baseFiles: job.request.baseFiles,
     baseVersion: job.request.version,
     onStatus: async (status) => {
