@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveGenerationJobStoreMode } from './jobStoreConfig';
 import { isTerminalGenerationStatus } from './serverTypes';
+import { isShareStorageConfigured } from '../sharing/shareStore';
 
 function env(input: Record<string, string> = {}): NodeJS.ProcessEnv {
   return input as NodeJS.ProcessEnv;
@@ -25,5 +26,21 @@ describe('serverTypes', () => {
     expect(isTerminalGenerationStatus('failed')).toBe(true);
     expect(isTerminalGenerationStatus('expired')).toBe(true);
     expect(isTerminalGenerationStatus('running')).toBe(false);
+  });
+});
+
+describe('shareStore', () => {
+  it('requires both Redis url and token for sharing', () => {
+    expect(isShareStorageConfigured(env())).toBe(false);
+    expect(isShareStorageConfigured(env({ UPSTASH_REDIS_REST_URL: 'https://example.com' }))).toBe(false);
+    expect(isShareStorageConfigured(env({ UPSTASH_REDIS_REST_TOKEN: 'token' }))).toBe(false);
+    expect(
+      isShareStorageConfigured(
+        env({
+          UPSTASH_REDIS_REST_URL: 'https://example.com',
+          UPSTASH_REDIS_REST_TOKEN: 'token',
+        })
+      )
+    ).toBe(true);
   });
 });

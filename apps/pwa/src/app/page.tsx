@@ -22,10 +22,13 @@ import { SignOutButton } from '@/components/auth/sign-out-button';
 import { InstallButton } from '@/components/install-button';
 import { AppToolbar } from '@/components/navigation/app-toolbar';
 import { MobileTabs } from '@/components/navigation/mobile-tabs';
+import { shareAppLink } from '@/lib/sharing/client';
+import { getServerConfig } from '@/lib/server-config';
 
 export default function HomePage() {
   const [apps, setApps] = useState<SuApp[]>([]);
   const [appsLoaded, setAppsLoaded] = useState(false);
+  const [shareEnabled, setShareEnabled] = useState(false);
   const generationMap = useGenerationMap();
   const anyBusy = useAnyBusy();
   const wasBusyRef = useRef(false);
@@ -40,9 +43,10 @@ export default function HomePage() {
       cleanupCompletedGenerations();
       resumeAllPending();
       try {
-        const nextApps = await ensureDefaultAppsSeededClient();
+        const [nextApps, config] = await Promise.all([ensureDefaultAppsSeededClient(), getServerConfig()]);
         if (!active) return;
         setApps(nextApps);
+        setShareEnabled(config.shareEnabled);
       } finally {
         if (active) setAppsLoaded(true);
       }
@@ -97,6 +101,10 @@ export default function HomePage() {
     setApps((prev) => prev.filter((app) => app.id !== appId));
   }, []);
 
+  const shareApp = useCallback(async (appId: string, appName: string) => {
+    return shareAppLink(appId, appName);
+  }, []);
+
   const hasDetachedGeneration = Array.from(generationMap.entries()).some(
     ([appId, state]) => state.busy && !apps.some((app) => app.id === appId)
   );
@@ -132,7 +140,9 @@ export default function HomePage() {
                       app={app}
                       onRename={renameApp}
                       onDelete={deleteApp}
+                      onShare={shareApp}
                       generating={generationMap.get(app.id)?.busy ?? false}
+                      shareEnabled={shareEnabled}
                     />
                   </IonCol>
                 ))

@@ -3,6 +3,7 @@ import type { ChatMessage, StorageAdapter, SuApp } from '@/types';
 import { safeRandomId } from '@/lib/id';
 import { sortChatMessages } from './chatMessageSort';
 import type { PersistedGenerationJob } from '@/lib/generation/clientTypes';
+import type { SharedAppSnapshotPayload } from '@/lib/sharing/contracts';
 
 interface ArtifactRow {
   id: string;
@@ -36,12 +37,19 @@ interface GenerationJobRow {
   completedAt?: number;
 }
 
+interface SharedImportRow {
+  shareId: string;
+  localAppId: string;
+  importedAt: string;
+}
+
 class SuDb extends Dexie {
   apps!: Table<SuApp, string>;
   messages!: Table<ChatMessage, string>;
   artifacts!: Table<ArtifactRow, string>;
   secrets!: Table<SecretRow, string>;
   generationJobs!: Table<GenerationJobRow, string>;
+  sharedImports!: Table<SharedImportRow, string>;
 
   constructor() {
     super('buildonphone');
@@ -57,6 +65,14 @@ class SuDb extends Dexie {
       artifacts: 'id, appId, [appId+version], filename',
       secrets: 'name',
       generationJobs: 'id, appId, updatedAt, applyState',
+    });
+    this.version(3).stores({
+      apps: 'id, updatedAt',
+      messages: 'id, appId, createdAt',
+      artifacts: 'id, appId, [appId+version], filename',
+      secrets: 'name',
+      generationJobs: 'id, appId, updatedAt, applyState',
+      sharedImports: 'shareId, localAppId, importedAt',
     });
   }
 }
@@ -222,4 +238,106 @@ export async function putPersistedGenerationJob(job: PersistedGenerationJob): Pr
 
 export async function deletePersistedGenerationJobByAppId(appId: string): Promise<void> {
   await db.generationJobs.where('appId').equals(appId).delete();
+}
+
+export async function exportAppSnapshot(appId: string): Promise<SharedAppSnapshotPayload> {
+  const app = await db.apps.get(appId);
+  if (!app) {
+    throw new Error('App not found.');
+  }
+
+  if (app.currentVersion < 1) {
+    throw new Error('Generate the app before sharing it.');
+  }
+
+  const [messages, artifactRows] = await Promise.all([
+    db.messages.where('appId').equals(appId).toArray(),
+    db.artifacts.where('[appId+version]').equals([appId, app.currentVersion]).toArray(),
+  ]);
+
+  if (artifactRows.length === 0) {
+    throw new Error('No generated app files were found for this version.');
+  }
+
+  return {
+    app: {
+      name: app.name,
+      description: app.description,
+      icon: app.icon,
+      theme: app.theme,
+      currentVersion: app.currentVersion,
+    },
+    messages: sortChatMessages(messages).map((message) => ({
+      role: message.role,
+      content: message.content,
+      createdAt: message.createdAt,
+      ...(message.version !== undefined ? { version: message.version } : {}),
+    })),
+    artifacts: Object.fromEntries(artifactRows.map((row) => [row.filename, row.content])),
+  };
+}
+
+export async function getLocalSharedImport(shareId: string): Promise<string | null> {
+  const mapping = await db.sharedImports.get(shareId);
+  if (!mapping) return null;
+
+  const app = await db.apps.get(mapping.localAppId);
+  if (app) {
+    return app.id;
+  }
+
+  await db.sharedImports.delete(shareId);
+  return null;
+}
+
+export async function importSharedAppSnapshot(
+  shareId: string,
+  snapshot: SharedAppSnapshotPayload
+): Promise<SuApp> {
+  const importedAt = new Date().toISOString();
+  const appId = safeRandomId('app');
+  const app: SuApp = {
+    id: appId,
+    name: snapshot.app.name,
+    description: snapshot.app.description,
+    icon: snapshot.app.icon,
+    theme: snapshot.app.theme,
+    currentVersion: snapshot.app.currentVersion,
+    createdAt: importedAt,
+    updatedAt: importedAt,
+  };
+
+  await db.transaction('rw', db.apps, db.messages, db.artifacts, db.sharedImports, async () => {
+    await db.apps.put(app);
+
+    for (const message of snapshot.messages) {
+      await db.messages.put({
+        id: safeRandomId('msg'),
+        appId,
+        role: message.role,
+        content: message.content,
+        createdAt: message.createdAt,
+        ...(message.version !== undefined ? { version: message.version } : {}),
+      });
+    }
+
+    for (const [filename, content] of Object.entries(snapshot.artifacts)) {
+      await db.artifacts.put({
+        id: `${appId}-${snapshot.app.currentVersion}-${filename}`,
+        appId,
+        version: snapshot.app.currentVersion,
+        filename,
+        content,
+        createdAt: importedAt,
+      });
+    }
+
+    await db.sharedImports.put({
+      shareId,
+      localAppId: appId,
+      importedAt,
+    });
+  });
+
+  return app;
 }

@@ -25,26 +25,31 @@ interface AppCardProps {
   app: SuApp;
   onRename: (appId: string, nextName: string) => Promise<void>;
   onDelete: (appId: string) => Promise<void>;
+  onShare: (appId: string, appName: string) => Promise<'shared' | 'copied'>;
   generating?: boolean;
+  shareEnabled?: boolean;
 }
 
-export function AppCard({ app, onRename, onDelete, generating = false }: AppCardProps) {
+export function AppCard({ app, onRename, onDelete, onShare, generating = false, shareEnabled = false }: AppCardProps) {
   const router = useRouter();
   const [isRenaming, setIsRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(app.name);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
   const cancelRename = () => {
     setIsRenaming(false);
     setNameDraft(app.name);
     setError('');
+    setStatusMessage('');
   };
 
   const startRename = () => {
     setNameDraft(app.name);
     setError('');
+    setStatusMessage('');
     setIsRenaming(true);
   };
 
@@ -61,6 +66,7 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
 
     setBusy(true);
     setError('');
+    setStatusMessage('');
     try {
       await onRename(app.id, next);
       setIsRenaming(false);
@@ -70,6 +76,25 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
       });
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : 'Failed to rename app.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const shareApp = async () => {
+    setBusy(true);
+    setError('');
+    setStatusMessage('');
+
+    try {
+      const result = await onShare(app.id, app.name);
+      setStatusMessage(result === 'shared' ? 'Share link ready.' : 'Share link copied.');
+      captureAnalyticsEvent('app_share_completed', {
+        appId: app.id,
+        result,
+      });
+    } catch (shareError) {
+      setError(shareError instanceof Error ? shareError.message : 'Failed to share app.');
     } finally {
       setBusy(false);
     }
@@ -122,6 +147,11 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
             {error}
           </IonText>
         ) : null}
+        {statusMessage ? (
+          <IonText color="success" className="ion-display-block ion-margin-top">
+            {statusMessage}
+          </IonText>
+        ) : null}
 
         <IonGrid className="ion-no-padding ion-margin-top app-card-actions">
           <IonRow className={isRenaming ? 'app-card-actions-row' : 'app-card-actions-row ion-justify-content-between'}>
@@ -163,21 +193,19 @@ export function AppCard({ app, onRename, onDelete, generating = false }: AppCard
                   >
                     Edit
                   </IonButton>
+                  <IonButton
+                    size="small"
+                    fill="outline"
+                    color="secondary"
+                    disabled={!shareEnabled || busy || generating || app.currentVersion < 1}
+                    onClick={() => void shareApp()}
+                  >
+                    Share
+                  </IonButton>
                 </div>
               </IonCol>
               <IonCol size="auto" className="ion-no-padding">
                 <div className="app-card-actions-group app-card-actions-group--right">
-                  <IonButton
-                    size="small"
-                    fill="clear"
-                    color="medium"
-                    onClick={() => {
-                      captureAnalyticsEvent('app_rename_started', { appId: app.id });
-                      startRename();
-                    }}
-                  >
-                    Rename
-                  </IonButton>
                   <IonButton
                     size="small"
                     fill="outline"

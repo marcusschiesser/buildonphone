@@ -1,5 +1,6 @@
 type ServerConfig = {
   jobTimeoutMs: number;
+  shareEnabled: boolean;
 };
 
 let cache: ServerConfig | null = null;
