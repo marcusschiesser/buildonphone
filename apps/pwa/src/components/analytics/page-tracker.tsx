@@ -1,22 +1,35 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { captureAnalyticsEvent, identifyAnalyticsUser } from '@/lib/analytics/telemetry';
+import { captureAnalyticsEvent, identifyAnalyticsUser, resetAnalyticsUser } from '@/lib/analytics/telemetry';
 
 export function PageTracker() {
   const pathname = usePathname();
   const { user } = useUser();
+  const identifiedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      if (identifiedUserIdRef.current) {
+        resetAnalyticsUser();
+        identifiedUserIdRef.current = null;
+      }
+      return;
+    }
+
+    if (identifiedUserIdRef.current === user.id) {
+      return;
+    }
+
     identifyAnalyticsUser(user.id, {
       email: user.primaryEmailAddress?.emailAddress,
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
     });
+    identifiedUserIdRef.current = user.id;
   }, [user]);
 
   useEffect(() => {

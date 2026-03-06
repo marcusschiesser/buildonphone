@@ -14,6 +14,10 @@ export function identifyAnalyticsUser(distinctId: string, properties?: Telemetry
   posthog.identify(trimmed, properties);
 }
 
+export function resetAnalyticsUser(): void {
+  posthog.reset();
+}
+
 export function maybeCaptureFirstGenerationSuccess(properties?: TelemetryProps): void {
   if (typeof window === 'undefined') return;
   const existing = window.localStorage.getItem(FIRST_GENERATION_SUCCESS_KEY);
