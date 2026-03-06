@@ -8,10 +8,10 @@ export function captureAnalyticsEvent(event: string, properties?: TelemetryProps
   posthog.capture(event, properties);
 }
 
-export function identifyAnalyticsUser(alias: string): void {
-  const trimmed = alias.trim();
+export function identifyAnalyticsUser(distinctId: string, properties?: TelemetryProps): void {
+  const trimmed = distinctId.trim();
   if (!trimmed) return;
-  posthog.identify(trimmed, { alias: trimmed });
+  posthog.identify(trimmed, properties);
 }
 
 export function maybeCaptureFirstGenerationSuccess(properties?: TelemetryProps): void {
@@ -21,4 +21,3 @@ export function maybeCaptureFirstGenerationSuccess(properties?: TelemetryProps):
   window.localStorage.setItem(FIRST_GENERATION_SUCCESS_KEY, '1');
   posthog.capture('first_generation_success', properties);
 }
-

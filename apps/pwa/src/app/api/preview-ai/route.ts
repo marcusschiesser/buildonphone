@@ -1,7 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { jsonSchema, Output, streamText, type ModelMessage } from 'ai';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { isRequestAuthorized } from '@/lib/auth';
 import { DEFAULT_MODEL } from '@/lib/model';
 import { normalizePreviewAiInput, type PreviewAiInput } from '@/lib/ui/previewAiBridgeCore';
 
@@ -38,7 +38,8 @@ function toModelMessages(messages: NonNullable<ReturnType<typeof normalizePrevie
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await isRequestAuthorized(req))) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -48,9 +49,8 @@ export async function POST(req: NextRequest) {
   }
 
   const normalized = normalizePreviewAiInput(body.input);
-  const serverKey = process.env.ANTHROPIC_API_KEY?.trim();
   const byok = req.headers.get('x-api-key')?.trim();
-  const apiKey = serverKey || byok;
+  const apiKey = byok;
 
   if (!apiKey) {
     return NextResponse.json({ error: 'Missing Anthropic API key in host app. Add your BYOK key first.' }, { status: 400 });

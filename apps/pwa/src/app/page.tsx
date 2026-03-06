@@ -19,6 +19,7 @@ import { cleanupCompletedGenerations, useAnyBusy, useGenerationMap } from '@/lib
 import { getAllPersistedJobs } from '@/lib/generation/persistJob';
 import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
 import { AppCard } from '@/components/apps/app-card';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 import { InstallButton } from '@/components/install-button';
 import { AppToolbar } from '@/components/navigation/app-toolbar';
 import { MobileTabs } from '@/components/navigation/mobile-tabs';
@@ -108,9 +109,16 @@ export default function HomePage() {
   if (!mounted) return null;
 
   return (
-    <IonPage>
+      <IonPage>
       <IonHeader translucent>
-        <AppToolbar end={<InstallButton />} />
+        <AppToolbar
+          end={
+            <>
+              <InstallButton />
+              <SignOutButton />
+            </>
+          }
+        />
       </IonHeader>
 
       <IonContent>

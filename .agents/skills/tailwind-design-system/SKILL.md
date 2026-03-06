@@ -710,7 +710,7 @@ export const useTheme = () => {
 }
 
 // components/ThemeToggle.tsx
-import { Moon, Sun } from 'lucide-react'
+import { moonOutline, sunnyOutline } from 'ionicons/icons'
 import { useTheme } from '@/providers/ThemeProvider'
 
 export function ThemeToggle() {

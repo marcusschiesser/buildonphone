@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { useAuth, useClerk } from '@clerk/nextjs';
 import { hasAnthropicKey } from '@/lib/security/byok';
-import { getServerConfig } from '@/lib/server-config';
 import { AiAccessModal } from '@/components/ai-access-modal';
 import { resolveAiAccessRequirements, type AiAccessRequirements } from './aiAccessRequirements';
 
@@ -26,6 +26,8 @@ export function isAuthRequiredError(error: unknown): error is AuthRequiredError 
 }
 
 export function useAiAccessGate() {
+  const { isSignedIn } = useAuth();
+  const clerk = useClerk();
   const [modalState, setModalState] = useState<ModalState | null>(null);
   const pendingResolveRef = useRef<((result: { ok: boolean }) => void) | null>(null);
 
@@ -37,23 +39,22 @@ export function useAiAccessGate() {
   }, []);
 
   const ensureAiAccess = useCallback(
-    async (options: { purpose: AiAccessPurpose; forcePassword?: boolean }): Promise<{ ok: boolean }> => {
-      const [{ hasServerKey, requiresPassword, authenticated }, hasByokKey] = await Promise.all([
-        getServerConfig({ refresh: true }),
-        hasAnthropicKey(),
-      ]);
+    async (options: { purpose: AiAccessPurpose }): Promise<{ ok: boolean }> => {
+      const hasByokKey = await hasAnthropicKey();
 
       const requirements = resolveAiAccessRequirements({
-        requiresPassword,
-        authenticated,
-        hasServerKey,
+        isSignedIn: !!isSignedIn,
         hasByokKey,
         fakeGenerationEnabled: process.env.NEXT_PUBLIC_FAKE_GENERATION === '1' && options.purpose === 'generation',
-        forcePassword: options.forcePassword,
       });
 
-      if (!requirements.needsPassword && !requirements.needsByok) {
+      if (!requirements.needsSignIn && !requirements.needsByok) {
         return { ok: true };
+      }
+
+      if (requirements.needsSignIn) {
+        await clerk.openSignIn();
+        return { ok: false };
       }
 
       return new Promise<{ ok: boolean }>((resolve) => {
@@ -64,14 +65,13 @@ export function useAiAccessGate() {
         });
       });
     },
-    []
+    [clerk, isSignedIn]
   );
 
   const modal = modalState ? (
     <AiAccessModal
       isOpen
       purpose={modalState.purpose}
-      needsPassword={modalState.needsPassword}
       needsByok={modalState.needsByok}
       onCancel={() => settle({ ok: false })}
       onSuccess={() => settle({ ok: true })}

@@ -2,10 +2,22 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
+import { useUser } from '@clerk/nextjs';
+import { captureAnalyticsEvent, identifyAnalyticsUser } from '@/lib/analytics/telemetry';
 
 export function PageTracker() {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (!user) return;
+    identifyAnalyticsUser(user.id, {
+      email: user.primaryEmailAddress?.emailAddress,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    });
+  }, [user]);
 
   useEffect(() => {
     const query = typeof window === 'undefined' ? '' : window.location.search.replace(/^\?/, '');

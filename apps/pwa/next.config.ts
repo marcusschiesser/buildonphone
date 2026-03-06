@@ -5,13 +5,13 @@ const csp = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://*.posthog.com https://*.i.posthog.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com https://*.posthog.com https://*.i.posthog.com https://*.clerk.com https://*.clerk.accounts.dev",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  "img-src 'self' data: blob: https: https://*.clerk.com https://*.clerk.accounts.dev",
   "font-src 'self' data: https:",
-  "connect-src 'self' http: https: ws: wss: blob: data:",
+  "connect-src 'self' http: https: ws: wss: blob: data: https://*.clerk.com https://*.clerk.accounts.dev",
   "worker-src 'self' blob:",
-  "frame-src 'self' blob: data: https://stackblitz.com https://*.stackblitz.com",
+  "frame-src 'self' blob: data: https://stackblitz.com https://*.stackblitz.com https://*.clerk.com https://*.clerk.accounts.dev",
 ].join('; ');
 
 const nextConfig: NextConfig = {

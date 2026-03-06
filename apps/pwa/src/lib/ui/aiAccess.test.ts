@@ -2,58 +2,50 @@ import { describe, expect, it } from 'vitest';
 import { resolveAiAccessRequirements } from './aiAccessRequirements';
 
 describe('aiAccess', () => {
-  it('requires only password when the server key exists and auth is missing', () => {
+  it('requires sign-in and BYOK when both are missing', () => {
     expect(
       resolveAiAccessRequirements({
-        requiresPassword: true,
-        authenticated: false,
-        hasServerKey: true,
+        isSignedIn: false,
         hasByokKey: false,
       })
     ).toEqual({
-      needsPassword: true,
+      needsSignIn: true,
+      needsByok: true,
+    });
+  });
+
+  it('requires BYOK when signed in without key', () => {
+    expect(
+      resolveAiAccessRequirements({
+        isSignedIn: true,
+        hasByokKey: false,
+      })
+    ).toEqual({
+      needsSignIn: false,
+      needsByok: true,
+    });
+  });
+
+  it('requires sign-in when signed out even if key exists', () => {
+    expect(
+      resolveAiAccessRequirements({
+        isSignedIn: false,
+        hasByokKey: true,
+      })
+    ).toEqual({
+      needsSignIn: true,
       needsByok: false,
     });
   });
 
-  it('requires password and BYOK when both are missing', () => {
+  it('requires nothing when signed in and key exists', () => {
     expect(
       resolveAiAccessRequirements({
-        requiresPassword: true,
-        authenticated: false,
-        hasServerKey: false,
-        hasByokKey: false,
+        isSignedIn: true,
+        hasByokKey: true,
       })
     ).toEqual({
-      needsPassword: true,
-      needsByok: true,
-    });
-  });
-
-  it('requires only BYOK when no server key is configured', () => {
-    expect(
-      resolveAiAccessRequirements({
-        requiresPassword: false,
-        authenticated: true,
-        hasServerKey: false,
-        hasByokKey: false,
-      })
-    ).toEqual({
-      needsPassword: false,
-      needsByok: true,
-    });
-  });
-
-  it('requires nothing when auth is already valid and a server key exists', () => {
-    expect(
-      resolveAiAccessRequirements({
-        requiresPassword: true,
-        authenticated: true,
-        hasServerKey: true,
-        hasByokKey: false,
-      })
-    ).toEqual({
-      needsPassword: false,
+      needsSignIn: false,
       needsByok: false,
     });
   });
@@ -61,30 +53,14 @@ describe('aiAccess', () => {
   it('does not require BYOK when fake generation is enabled', () => {
     expect(
       resolveAiAccessRequirements({
-        requiresPassword: false,
-        authenticated: true,
-        hasServerKey: false,
+        isSignedIn: true,
         hasByokKey: false,
         fakeGenerationEnabled: true,
       })
     ).toEqual({
-      needsPassword: false,
+      needsSignIn: false,
       needsByok: false,
     });
   });
 
-  it('forces password re-entry when requested explicitly', () => {
-    expect(
-      resolveAiAccessRequirements({
-        requiresPassword: true,
-        authenticated: true,
-        hasServerKey: true,
-        hasByokKey: false,
-        forcePassword: true,
-      })
-    ).toEqual({
-      needsPassword: true,
-      needsByok: false,
-    });
-  });
 });

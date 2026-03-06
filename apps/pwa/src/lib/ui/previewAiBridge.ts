@@ -1,5 +1,4 @@
 import { getAnthropicKey } from '../security/byok';
-import { getServerConfig } from '../server-config';
 import { AuthRequiredError } from './aiAccess';
 import { normalizePreviewAiInput, type PreviewAiInput } from './previewAiBridgeCore';
 
@@ -74,8 +73,8 @@ export async function executePreviewAiRequest(
   }
 ): Promise<void> {
   const normalized = normalizePreviewAiInput(input);
-  const [{ hasServerKey }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-  if (!apiKey && !hasServerKey) {
+  const apiKey = await getAnthropicKey();
+  if (!apiKey) {
     throw new Error('Missing Anthropic API key in host app. Add your BYOK key first.');
   }
 

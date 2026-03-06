@@ -1,7 +1,4 @@
 type ServerConfig = {
-  hasServerKey: boolean;
-  requiresPassword: boolean;
-  authenticated: boolean;
   jobTimeoutMs: number;
 };
 
@@ -12,8 +9,4 @@ export async function getServerConfig(options?: { refresh?: boolean }): Promise<
   const res = await fetch('/api/config');
   cache = await res.json();
   return cache!;
-}
-
-export function clearServerConfigCache() {
-  cache = null;
 }

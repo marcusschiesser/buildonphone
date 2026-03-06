@@ -191,8 +191,8 @@ export async function startGeneration(params: {
     });
 
     const fakeGenerationEnabled = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
-    const [{ hasServerKey, jobTimeoutMs }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
-    if (!fakeGenerationEnabled && !apiKey && !hasServerKey) {
+    const [{ jobTimeoutMs }, apiKey] = await Promise.all([getServerConfig(), getAnthropicKey()]);
+    if (!fakeGenerationEnabled && !apiKey) {
       const message = 'Missing Anthropic key';
       const assistantMessage = await localStorageAdapter.appendMessage(params.appId, {
         appId: params.appId,

@@ -76,10 +76,9 @@ async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string
     });
   }
 
-  const serverKey = process.env.ANTHROPIC_API_KEY?.trim();
-  const apiKey = serverKey || requestScopedApiKey?.trim();
+  const apiKey = requestScopedApiKey?.trim();
   if (!apiKey) {
-    throw new Error('Missing Anthropic key. Configure server ANTHROPIC_API_KEY or provide BYOK key.');
+    throw new Error('Missing Anthropic key. Provide your BYOK key.');
   }
 
   return runServerAgent({

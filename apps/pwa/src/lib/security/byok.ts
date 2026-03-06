@@ -1,5 +1,3 @@
-import { clearSecret, getSecret, saveSecret } from '@/lib/storage/db';
-
 const KEY_SLOT = 'anthropic_api_key';
 const ENC_SLOT = 'su_master_key';
 
@@ -31,29 +29,38 @@ function decrypt(payload: string): string | null {
   const [, body] = payload.split('.');
   if (!body) return null;
   const key = getMasterKey();
-  const cipher = fromB64(body);
-  const plain = cipher.map((byte, i) => byte ^ key[i % key.length]!);
-  return new TextDecoder().decode(plain);
+  try {
+    const cipher = fromB64(body);
+    const plain = cipher.map((byte, i) => byte ^ key[i % key.length]!);
+    return new TextDecoder('utf-8', { fatal: true }).decode(plain);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeKey(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (!/^[-\x20-\x7E]+$/.test(trimmed)) return null;
+  return trimmed;
 }
 
 export async function setAnthropicKey(raw: string) {
   const payload = encrypt(raw);
   localStorage.setItem(KEY_SLOT, payload);
-  await saveSecret(KEY_SLOT, payload);
 }
 
 export async function getAnthropicKey(): Promise<string | null> {
   const localPayload = localStorage.getItem(KEY_SLOT);
-  if (localPayload) {
-    return decrypt(localPayload);
+  if (!localPayload) return null;
+
+  const key = normalizeKey(decrypt(localPayload));
+  if (!key) {
+    localStorage.removeItem(KEY_SLOT);
+    return null;
   }
-
-  // Backward compatibility: migrate old IndexedDB-stored key into localStorage.
-  const dbPayload = await getSecret(KEY_SLOT);
-  if (!dbPayload) return null;
-
-  localStorage.setItem(KEY_SLOT, dbPayload);
-  return decrypt(dbPayload);
+  return key;
 }
 
 export async function hasAnthropicKey(): Promise<boolean> {
@@ -63,5 +70,4 @@ export async function hasAnthropicKey(): Promise<boolean> {
 
 export async function clearAnthropicKey() {
   localStorage.removeItem(KEY_SLOT);
-  await clearSecret(KEY_SLOT);
 }

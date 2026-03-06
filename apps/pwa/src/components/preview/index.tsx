@@ -223,7 +223,7 @@ export function PreviewFrame({
   files: Record<string, string>;
   className?: string;
   onFixError?: (payload: PreviewFixPayload) => void;
-  ensureAiAccess?: (options: { purpose: 'preview-ai'; forcePassword?: boolean }) => Promise<{ ok: boolean }>;
+  ensureAiAccess?: (options: { purpose: 'preview-ai' }) => Promise<{ ok: boolean }>;
 }) {
   const hasCode = Boolean(files['app.jsx']?.trim());
   const srcDoc = useMemo(() => buildPreviewHtml(files), [files]);
@@ -287,7 +287,7 @@ export function PreviewFrame({
       await tryExecute();
     } catch (error) {
       if (isAuthRequiredError(error) && ensureAiAccess) {
-        const access = await ensureAiAccess({ purpose: 'preview-ai', forcePassword: true });
+        const access = await ensureAiAccess({ purpose: 'preview-ai' });
         if (access.ok) {
           try {
             await executePreviewAiRequest(aiRequest.input, {

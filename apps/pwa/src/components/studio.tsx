@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonBackButton,
@@ -33,6 +34,20 @@ import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
 import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
 
+const PENDING_SEND_KEY = 'studio_pending_send';
+
+function readPendingSend(): string | null {
+  return sessionStorage.getItem(PENDING_SEND_KEY);
+}
+
+function savePendingSend(text: string): void {
+  sessionStorage.setItem(PENDING_SEND_KEY, text);
+}
+
+function clearPendingSend(): void {
+  sessionStorage.removeItem(PENDING_SEND_KEY);
+}
+
 export function Studio({
   appId,
   initialApp,
@@ -44,6 +59,7 @@ export function Studio({
   initialMessages?: ChatMessage[];
   initialVersion?: number;
 }) {
+  const { isSignedIn } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');
@@ -129,13 +145,63 @@ export function Studio({
           throw error;
         }
 
-        const access = await ensureAiAccess({ purpose: 'generation', forcePassword: true });
+        const access = await ensureAiAccess({ purpose: 'generation' });
         if (!access.ok) return;
         await startGeneration(params);
       }
     },
     [ensureAiAccess]
   );
+
+  useEffect(() => {
+    if (!isSignedIn || busy || gen?.result) return;
+    const pendingText = readPendingSend();
+    if (!pendingText?.trim()) return;
+
+    clearPendingSend();
+    if (!notificationPermissionRequestedRef.current) {
+      notificationPermissionRequestedRef.current = true;
+      void requestNotificationPermission();
+    }
+
+    const text = pendingText.trim();
+    const tempUserMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      appId,
+      role: 'user',
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    queueMicrotask(() => {
+      void (async () => {
+        const access = await ensureAiAccess({ purpose: 'generation' });
+        if (!access.ok) {
+          return;
+        }
+
+        setMessages((prev) => [...prev, tempUserMessage]);
+        setInput('');
+
+        void runGeneration(
+          {
+            appId,
+            text,
+            source: 'chat_send',
+            messages,
+            version,
+            files,
+            theme: initialApp?.theme ?? '',
+            appCreated,
+            appNameHint: initialApp?.name,
+          },
+          { allowRetry: true }
+        ).catch(() => {
+          // startGeneration persists non-auth failures into generation state.
+        });
+      })();
+    });
+  }, [appCreated, appId, busy, ensureAiAccess, files, gen?.result, initialApp?.name, initialApp?.theme, isSignedIn, messages, runGeneration, version]);
 
   const send = () => {
     const text = input.trim();
@@ -147,8 +213,16 @@ export function Studio({
     }
 
     void (async () => {
+      if (!isSignedIn) {
+        savePendingSend(text);
+      }
+
       const access = await ensureAiAccess({ purpose: 'generation' });
-      if (!access.ok) return;
+      if (!access.ok) {
+        return;
+      }
+
+      clearPendingSend();
 
       const tempUserMessage: ChatMessage = {
         id: `temp-${Date.now()}`,

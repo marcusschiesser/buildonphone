@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { safeRandomId } from '@/lib/id';
 import { createJob } from '@/lib/generation/jobStore';
 import { runGenerationJob } from '@/lib/generation/serverWorker';
 import type { GenerationJobRecord, GenerationJobRequest } from '@/lib/generation/serverTypes';
-import { isRequestAuthorized } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -22,7 +22,8 @@ function isValidRequest(body: unknown): body is GenerationJobRequest {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await isRequestAuthorized(req))) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

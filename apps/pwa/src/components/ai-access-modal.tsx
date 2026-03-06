@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   IonButton,
   IonButtons,
@@ -17,39 +17,35 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { setAnthropicKey } from '@/lib/security/byok';
-import { clearServerConfigCache } from '@/lib/server-config';
 
 export function AiAccessModal({
   isOpen,
   purpose,
-  needsPassword,
   needsByok,
   onCancel,
   onSuccess,
 }: {
   isOpen: boolean;
   purpose: 'generation' | 'preview-ai';
-  needsPassword: boolean;
   needsByok: boolean;
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const [password, setPassword] = useState('');
   const [byok, setByok] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const ctaLabel = useMemo(() => {
-    if (needsPassword && needsByok) {
-      return purpose === 'generation' ? 'Unlock and Generate' : 'Unlock and Continue';
+  useEffect(() => {
+    if (!needsByok) {
+      onSuccess();
     }
-    if (needsPassword) {
-      return purpose === 'generation' ? 'Unlock and Generate' : 'Unlock and Continue';
-    }
-    return purpose === 'generation' ? 'Save Key and Generate' : 'Save Key and Continue';
-  }, [needsByok, needsPassword, purpose]);
+  }, [needsByok, onSuccess]);
 
-  const canSubmit = (!needsPassword || password.trim().length > 0) && (!needsByok || byok.trim().length > 0) && !submitting;
+  const ctaLabel = useMemo(() => {
+    return purpose === 'generation' ? 'Save Key and Generate' : 'Save Key and Continue';
+  }, [purpose]);
+
+  const canSubmit = (!needsByok || byok.trim().length > 0) && !submitting;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -58,21 +54,6 @@ export function AiAccessModal({
     setError('');
 
     try {
-      if (needsPassword) {
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ password: password.trim() }),
-        });
-
-        if (!res.ok) {
-          setError('Invalid password');
-          return;
-        }
-
-        clearServerConfigCache();
-      }
-
       if (needsByok) {
         await setAnthropicKey(byok.trim());
       }
@@ -89,7 +70,7 @@ export function AiAccessModal({
     <IonModal isOpen={isOpen} backdropDismiss={false}>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>{purpose === 'generation' ? 'Unlock Generation' : 'Unlock AI Features'}</IonTitle>
+          <IonTitle>Anthropic Key Required</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={onCancel} disabled={submitting}>
               Cancel
@@ -100,24 +81,11 @@ export function AiAccessModal({
       <IonContent className="ion-padding">
         <IonText color="medium">
           <p>
-            {purpose === 'generation'
-              ? 'Credentials are only required when you start app generation.'
-              : 'Credentials are only required when the preview uses host AI features.'}
+              Provide your Anthropic key for using AI features.
           </p>
         </IonText>
 
         <IonList inset>
-          {needsPassword ? (
-            <IonItem lines="inset">
-              <IonLabel position="stacked">Password</IonLabel>
-              <IonInput
-                type="password"
-                value={password}
-                onIonInput={(event) => setPassword(event.detail.value ?? '')}
-                autocomplete="current-password"
-              />
-            </IonItem>
-          ) : null}
           {needsByok ? (
             <IonItem lines="inset">
               <IonLabel position="stacked">Anthropic BYOK</IonLabel>
@@ -130,16 +98,6 @@ export function AiAccessModal({
             </IonItem>
           ) : null}
         </IonList>
-
-        {needsPassword ? (
-          <IonNote color="medium" className="ion-display-block ion-margin-top">
-            To get the password, send a message to{' '}
-            <a href="https://www.linkedin.com/in/marcusschiesser/" target="_blank" rel="noreferrer">
-              marcusschiesser on LinkedIn
-            </a>
-            .
-          </IonNote>
-        ) : null}
 
         {needsByok ? (
           <IonNote color="medium" className="ion-display-block ion-margin-top">
