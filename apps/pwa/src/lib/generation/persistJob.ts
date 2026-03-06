@@ -1,56 +1,48 @@
-const ACTIVE_JOB_KEY_PREFIX = 'buildonphone:active-job:';
+import type { GenerationJobRecord } from './serverTypes';
+import type { PersistedGenerationJob } from './clientTypes';
+import {
+  deletePersistedGenerationJobByAppId,
+  getPersistedGenerationJobByAppId,
+  listPersistedGenerationJobs,
+  putPersistedGenerationJob,
+} from '@/lib/storage/db';
 
-export interface PersistedJob {
-  jobId: string;
+export async function persistActiveJob(job: PersistedGenerationJob): Promise<void> {
+  await putPersistedGenerationJob(job);
+}
+
+export async function clearPersistedJob(appId: string): Promise<void> {
+  await deletePersistedGenerationJobByAppId(appId);
+}
+
+export async function getPersistedJob(appId: string): Promise<PersistedGenerationJob | null> {
+  return getPersistedGenerationJobByAppId(appId);
+}
+
+export async function getAllPersistedJobs(): Promise<PersistedGenerationJob[]> {
+  return listPersistedGenerationJobs();
+}
+
+export function toPersistedJob(job: GenerationJobRecord, input: {
   appId: string;
   nextVersion: number;
   appName: string;
-}
-
-export function persistActiveJob(job: PersistedJob): void {
-  try {
-    localStorage.setItem(`${ACTIVE_JOB_KEY_PREFIX}${job.appId}`, JSON.stringify(job));
-  } catch {
-    // localStorage may be unavailable (private mode, quota exceeded, etc.)
-  }
-}
-
-export function clearPersistedJob(appId: string): void {
-  try {
-    localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${appId}`);
-  } catch {
-    // ignore
-  }
-}
-
-export function getPersistedJob(appId: string): PersistedJob | null {
-  try {
-    const raw = localStorage.getItem(`${ACTIVE_JOB_KEY_PREFIX}${appId}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as PersistedJob;
-  } catch {
-    return null;
-  }
-}
-
-export function getAllPersistedJobs(): PersistedJob[] {
-  try {
-    const jobs: PersistedJob[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(ACTIVE_JOB_KEY_PREFIX)) {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          try {
-            jobs.push(JSON.parse(raw) as PersistedJob);
-          } catch {
-            // skip malformed entries
-          }
-        }
-      }
-    }
-    return jobs;
-  } catch {
-    return [];
-  }
+  applyState?: PersistedGenerationJob['applyState'];
+}): PersistedGenerationJob {
+  return {
+    id: job.id,
+    appId: input.appId,
+    nextVersion: input.nextVersion,
+    appName: input.appName,
+    status: job.status,
+    statusText: job.statusText,
+    streamedText: job.streamedText,
+    toolCallCount: job.toolCallCount,
+    currentToolCall: job.currentToolCall,
+    applyState: input.applyState ?? 'pending',
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    startedAt: job.startedAt,
+    completedAt: job.completedAt,
+  };
 }

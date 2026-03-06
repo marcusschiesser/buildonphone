@@ -70,7 +70,7 @@ export function Studio({
   const { ensureAiAccess, modal } = useAiAccessGate();
   const gen = useGeneration(appId);
   const busy = gen?.busy ?? false;
-  const status = gen?.status ?? 'Idle';
+  const statusText = gen?.statusText ?? 'Idle';
   const streamedText = gen?.streamedText ?? '';
   const currentToolCall = gen?.currentToolCall ?? null;
 
@@ -304,8 +304,8 @@ export function Studio({
   };
 
   const threadMessages = useMemo(
-    () => getStudioThreadMessages(messages, busy, status, streamedText, currentToolCall),
-    [busy, messages, status, streamedText, currentToolCall]
+    () => getStudioThreadMessages(messages, busy, statusText, streamedText, currentToolCall),
+    [busy, messages, statusText, streamedText, currentToolCall]
   );
 
   const mounted = useIsClient();

@@ -1,4 +1,13 @@
-export type GenerationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'expired';
+export type GenerationJobPhase =
+  | 'queued'
+  | 'preparing'
+  | 'running'
+  | 'syncing'
+  | 'succeeded'
+  | 'failed'
+  | 'expired';
+
+export type GenerationJobStatus = GenerationJobPhase;
 
 export interface GenerationJobRequest {
   appId: string;
@@ -8,15 +17,6 @@ export interface GenerationJobRequest {
   baseFiles: Record<string, string>;
   theme: string;
   appNameHint?: string;
-}
-
-export interface GenerationJobProgress {
-  phase: 'queued' | 'preparing' | 'running' | 'syncing' | 'done' | 'error';
-  statusText: string;
-  streamedText: string;
-  toolCallCount: number;
-  currentToolCall: string | null;
-  updatedAt: number;
 }
 
 export interface GenerationJobResult {
@@ -29,11 +29,24 @@ export interface GenerationJobResult {
 
 export interface GenerationJobRecord {
   id: string;
+  userId: string;
   status: GenerationJobStatus;
   request: GenerationJobRequest;
-  progress: GenerationJobProgress;
+  statusText: string;
+  streamedText: string;
+  toolCallCount: number;
+  currentToolCall: string | null;
   result?: GenerationJobResult;
   createdAt: number;
+  updatedAt: number;
   startedAt?: number;
   completedAt?: number;
+}
+
+export function isTerminalGenerationStatus(status: GenerationJobStatus): boolean {
+  return status === 'succeeded' || status === 'failed' || status === 'expired';
+}
+
+export function isActiveGenerationStatus(status: GenerationJobStatus): boolean {
+  return !isTerminalGenerationStatus(status);
 }

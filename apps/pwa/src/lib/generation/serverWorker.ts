@@ -2,7 +2,7 @@ import { getErrorMessage } from '@/lib/agent/agentShared';
 import { runServerAgent } from '@/lib/agent/serverAgent';
 import { runFakeGeneration, isFakeGenerationEnabled } from './fakeGeneration';
 import { completeJob, failJob, getJob, updateJobProgress } from './jobStore';
-import type { GenerationJobRecord } from './serverTypes';
+import type { GenerationJobPhase, GenerationJobRecord } from './serverTypes';
 
 const JOB_TIMEOUT_MS = Number(process.env.GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
 
@@ -24,13 +24,12 @@ export async function runGenerationJob(jobId: string, requestScopedApiKey?: stri
 
   const startedAt = Date.now();
   await updateJobProgress(jobId, {
-    phase: 'running',
-    statusText: 'Preparing generation',
     streamedText: '',
     toolCallCount: 0,
     currentToolCall: null,
-    updatedAt: startedAt,
-  }, 'running');
+    statusText: 'Preparing generation',
+    startedAt,
+  }, 'preparing');
 
   try {
     const payload = await withTimeout(runJobCore(job, requestScopedApiKey), JOB_TIMEOUT_MS);
@@ -48,15 +47,24 @@ export async function runGenerationJob(jobId: string, requestScopedApiKey?: stri
 
 async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string): Promise<{ text: string; artifacts: Record<string, string> }> {
   let toolCalls = 0;
+  const phaseForStatus = (status: string): GenerationJobPhase => {
+    const lower = status.toLowerCase();
+    if (lower.includes('queue')) return 'queued';
+    if (lower.includes('prepar')) return 'preparing';
+    if (lower.includes('sync')) return 'syncing';
+    return 'running';
+  };
 
   if (isFakeGenerationEnabled()) {
     return runFakeGeneration({
       prompt: job.request.text,
       onStatus: async (status) => {
         await updateJobProgress(job.id, {
-          phase: status.toLowerCase().includes('sync') ? 'syncing' : 'running',
           statusText: status,
-        });
+          streamedText: (await getJob(job.id))?.streamedText ?? '',
+          toolCallCount: toolCalls,
+          currentToolCall: (await getJob(job.id))?.currentToolCall ?? null,
+        }, phaseForStatus(status));
       },
       onToolCall: async (target) => {
         toolCalls += 1;
@@ -64,13 +72,17 @@ async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string
           toolCallCount: toolCalls,
           currentToolCall: `#${toolCalls} ${target} (updating app files)`,
           statusText: `Running tool #${toolCalls}`,
-        });
+          streamedText: (await getJob(job.id))?.streamedText ?? '',
+        }, 'running');
       },
       onText: async (delta) => {
         const current = await getJob(job.id);
-        const streamedText = `${current?.progress.streamedText ?? ''}${delta}`;
+        const streamedText = `${current?.streamedText ?? ''}${delta}`;
         await updateJobProgress(job.id, {
+          statusText: current?.statusText ?? 'Running',
           streamedText,
+          toolCallCount: current?.toolCallCount ?? toolCalls,
+          currentToolCall: current?.currentToolCall ?? null,
         });
       },
     });
@@ -89,9 +101,11 @@ async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string
     baseVersion: job.request.version,
     onStatus: async (status) => {
       await updateJobProgress(job.id, {
-        phase: status.toLowerCase().includes('sync') ? 'syncing' : 'running',
         statusText: status,
-      });
+        streamedText: (await getJob(job.id))?.streamedText ?? '',
+        toolCallCount: toolCalls,
+        currentToolCall: (await getJob(job.id))?.currentToolCall ?? null,
+      }, phaseForStatus(status));
     },
     onToolCall: async (target) => {
       toolCalls += 1;
@@ -99,13 +113,17 @@ async function runJobCore(job: GenerationJobRecord, requestScopedApiKey?: string
         toolCallCount: toolCalls,
         currentToolCall: `#${toolCalls} ${target} (updating app files)`,
         statusText: `Running tool #${toolCalls}`,
-      });
+        streamedText: (await getJob(job.id))?.streamedText ?? '',
+      }, 'running');
     },
     onText: async (delta) => {
       const current = await getJob(job.id);
-      const streamedText = `${current?.progress.streamedText ?? ''}${delta}`;
+      const streamedText = `${current?.streamedText ?? ''}${delta}`;
       await updateJobProgress(job.id, {
+        statusText: current?.statusText ?? 'Running',
         streamedText,
+        toolCallCount: current?.toolCallCount ?? toolCalls,
+        currentToolCall: current?.currentToolCall ?? null,
       });
     },
   });

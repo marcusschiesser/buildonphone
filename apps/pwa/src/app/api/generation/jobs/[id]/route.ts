@@ -18,5 +18,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Generation job not found.' }, { status: 404 });
   }
 
+  if (job.userId !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   return NextResponse.json(job);
 }

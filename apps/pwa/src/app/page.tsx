@@ -16,8 +16,7 @@ import type { SuApp } from '@/types';
 import { localStorageAdapter } from '@/lib/storage/db';
 import { ensureDefaultAppsSeededClient } from '@/lib/apps/defaultAppsSeedingClient';
 import { cleanupCompletedGenerations, useAnyBusy, useGenerationMap } from '@/lib/generation/generationStore';
-import { getAllPersistedJobs } from '@/lib/generation/persistJob';
-import { resumeGenerationIfNeeded } from '@/lib/generation/resumeGeneration';
+import { resumeAllPersistedGenerations } from '@/lib/generation/resumeGeneration';
 import { AppCard } from '@/components/apps/app-card';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { InstallButton } from '@/components/install-button';
@@ -33,9 +32,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const resumeAllPending = () => {
-      for (const job of getAllPersistedJobs()) {
-        void resumeGenerationIfNeeded(job.appId);
-      }
+      void resumeAllPersistedGenerations();
     };
 
     let active = true;

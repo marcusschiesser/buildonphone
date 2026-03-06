@@ -37,17 +37,15 @@ export async function POST(req: NextRequest) {
 
   const job: GenerationJobRecord = {
     id: jobId,
+    userId,
     status: 'queued',
     request: body,
+    statusText: 'Queued prompt',
+    streamedText: '',
+    toolCallCount: 0,
+    currentToolCall: null,
     createdAt: now,
-    progress: {
-      phase: 'queued',
-      statusText: 'Queued prompt',
-      streamedText: '',
-      toolCallCount: 0,
-      currentToolCall: null,
-      updatedAt: now,
-    },
+    updatedAt: now,
   };
 
   await createJob(job);

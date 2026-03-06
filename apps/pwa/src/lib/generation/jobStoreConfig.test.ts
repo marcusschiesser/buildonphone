@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest';
+import { resolveGenerationJobStoreMode } from './jobStoreConfig';
+import { isTerminalGenerationStatus } from './serverTypes';
+
+function env(input: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return input as NodeJS.ProcessEnv;
+}
+
+describe('jobStoreConfig', () => {
+  it('defaults to redis when no mode is configured', () => {
+    expect(resolveGenerationJobStoreMode(env())).toBe('redis');
+  });
+
+  it('allows memory mode only for fake generation', () => {
+    expect(resolveGenerationJobStoreMode(env({ GENERATION_JOB_STORE: 'memory', NEXT_PUBLIC_FAKE_GENERATION: '1' }))).toBe('memory');
+    expect(() => resolveGenerationJobStoreMode(env({ GENERATION_JOB_STORE: 'memory' }))).toThrow(
+      'GENERATION_JOB_STORE=memory is only allowed when fake generation is enabled.'
+    );
+  });
+});
+
+describe('serverTypes', () => {
+  it('identifies terminal job statuses', () => {
+    expect(isTerminalGenerationStatus('succeeded')).toBe(true);
+    expect(isTerminalGenerationStatus('failed')).toBe(true);
+    expect(isTerminalGenerationStatus('expired')).toBe(true);
+    expect(isTerminalGenerationStatus('running')).toBe(false);
+  });
+});

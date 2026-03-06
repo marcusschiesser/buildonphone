@@ -1,4 +1,4 @@
-import type { GenerationJobRecord } from './serverTypes';
+import { isTerminalGenerationStatus, type GenerationJobRecord } from './serverTypes';
 
 export class StaleJobError extends Error {
   constructor() {
@@ -47,16 +47,16 @@ export async function pollGenerationJob(
     const job = (await res.json()) as GenerationJobRecord;
     handlers.onProgress(job);
 
-    if (job.status === 'succeeded' || job.status === 'failed' || job.status === 'expired') {
+    if (isTerminalGenerationStatus(job.status)) {
       return job;
     }
 
-    // Stale detection: track whether progress.updatedAt is advancing.
+    // Stale detection: track whether updatedAt is advancing.
     // During active generation the server updates it on every text delta,
     // tool-call, and status change, so silence for staleTimeoutMs means
     // the worker has died.
     if (handlers.staleTimeoutMs !== undefined) {
-      if (lastSeenUpdatedAt !== null && job.progress.updatedAt === lastSeenUpdatedAt) {
+      if (lastSeenUpdatedAt !== null && job.updatedAt === lastSeenUpdatedAt) {
         if (staleWindowStart === null) {
           staleWindowStart = Date.now();
         } else if (Date.now() - staleWindowStart > handlers.staleTimeoutMs) {
@@ -66,7 +66,7 @@ export async function pollGenerationJob(
         // Progress moved – reset the stale window.
         staleWindowStart = null;
       }
-      lastSeenUpdatedAt = job.progress.updatedAt;
+      lastSeenUpdatedAt = job.updatedAt;
     }
 
     attempt += 1;

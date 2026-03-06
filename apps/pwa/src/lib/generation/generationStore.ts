@@ -1,7 +1,8 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { GenerationResult, GenerationSnapshot, GenerationState } from './types';
+import { isTerminalGenerationStatus } from './serverTypes';
+import type { GenerationResult, GenerationSnapshot, GenerationState, PersistedGenerationJob } from './clientTypes';
 
 const COMPLETED_TTL_MS = 5 * 60 * 1000;
 const EMPTY_GENERATION_MAP: ReadonlyMap<string, GenerationState> = new Map();
@@ -25,13 +26,17 @@ function createDefaultState(appId: string): GenerationState {
   const timestamp = now();
   return {
     appId,
+    id: '',
+    nextVersion: 0,
+    appName: 'My App',
     busy: false,
     phase: 'idle',
-    status: 'Idle',
+    statusText: 'Idle',
     streamedText: '',
     currentToolCall: null,
     toolCallCount: 0,
-    startedAt: timestamp,
+    applyState: 'pending',
+    createdAt: timestamp,
     updatedAt: timestamp,
   };
 }
@@ -44,6 +49,13 @@ function writeState(appId: string, updater: (prev: GenerationState) => Generatio
   byAppId = nextMap;
   cleanupCompletedGenerations(nextState.updatedAt);
   emit();
+}
+
+function deriveBusy(state: Pick<GenerationState, 'phase' | 'result' | 'applyState'>): boolean {
+  if (state.result) return false;
+  if (state.phase === 'idle') return false;
+  if (state.applyState === 'applying') return true;
+  return !isTerminalGenerationStatus(state.phase);
 }
 
 export function subscribe(listener: () => void) {
@@ -64,41 +76,73 @@ export function getGeneration(appId: string): GenerationState | undefined {
   return byAppId.get(appId);
 }
 
+export function hydrateGeneration(job: PersistedGenerationJob) {
+  writeState(job.appId, (prev) => ({
+    ...prev,
+    ...job,
+    phase: job.status,
+    busy: deriveBusy({ phase: job.status, result: prev.result, applyState: job.applyState }),
+  }));
+}
+
+export function hydrateGenerations(jobs: PersistedGenerationJob[]) {
+  for (const job of jobs) {
+    hydrateGeneration(job);
+  }
+}
+
 export function startGenerationState(appId: string) {
   const timestamp = now();
   writeState(appId, (prev) => ({
-    ...prev,
-    appId,
-    busy: true,
-    phase: 'preparing',
-    status: 'Queuing prompt',
+      ...prev,
+      busy: true,
+      id: prev.id,
+      phase: 'queued',
+    statusText: 'Queuing prompt',
     streamedText: '',
     currentToolCall: null,
     toolCallCount: 0,
     result: undefined,
-    startedAt: timestamp,
+    applyState: 'pending',
     updatedAt: timestamp,
+    createdAt: prev.createdAt || timestamp,
   }));
 }
 
 export function patchGeneration(appId: string, patch: Partial<GenerationState>) {
-  writeState(appId, (prev) => ({
-    ...prev,
-    ...patch,
-    appId,
-    updatedAt: now(),
-  }));
+  writeState(appId, (prev) => {
+    const next = {
+      ...prev,
+      ...patch,
+      appId,
+      updatedAt: now(),
+    };
+
+    return {
+      ...next,
+      busy: deriveBusy({
+        phase: next.phase,
+        result: next.result,
+        applyState: next.applyState,
+      }),
+    };
+  });
 }
 
 export function setGenerationResult(appId: string, result: GenerationResult) {
-  writeState(appId, (prev) => ({
-    ...prev,
-    busy: false,
-    phase: result.ok ? 'done' : 'error',
-    status: result.ok ? 'Done' : `Error: ${result.error ?? 'Generation failed'}`,
-    result,
-    updatedAt: now(),
-  }));
+  writeState(appId, (prev) => {
+    const phase = result.ok ? 'succeeded' : 'failed';
+    return {
+      ...prev,
+      busy: false,
+      phase,
+      statusText: result.ok ? 'Done' : `Error: ${result.error ?? 'Generation failed'}`,
+      applyState: 'applied',
+      result,
+      updatedAt: now(),
+      completedAt: result.completedAt,
+    };
+  });
 }
 
 export function consumeGenerationResult(appId: string): GenerationResult | undefined {
@@ -112,6 +156,7 @@ export function consumeGenerationResult(appId: string): GenerationResult | undef
     toolCallCount: 0,
     result: undefined,
     updatedAt: now(),
+    busy: false,
   }));
   return consumed;
 }
