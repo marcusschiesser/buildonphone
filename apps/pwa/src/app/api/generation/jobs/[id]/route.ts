@@ -5,11 +5,12 @@ import { shouldExpireJob } from '@/lib/generation/recovery';
 
 export const runtime = 'nodejs';
 const JOB_TIMEOUT_MS = Number(process.env.GENERATION_JOB_TIMEOUT_SECONDS || '300') * 1000;
+const FAKE_GENERATION_ENABLED = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   void req;
-  const { userId } = await auth();
-  if (!userId) {
+  const effectiveUserId = FAKE_GENERATION_ENABLED ? 'fake-generation-user' : (await auth()).userId;
+  if (!effectiveUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Generation job not found.' }, { status: 404 });
   }
 
-  if (job.userId !== userId) {
+  if (job.userId !== effectiveUserId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Generation job not found.' }, { status: 404 });
     }
 
-    if (latestJob.userId !== userId) {
+    if (latestJob.userId !== effectiveUserId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

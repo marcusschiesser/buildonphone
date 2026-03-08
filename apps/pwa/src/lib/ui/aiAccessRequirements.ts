@@ -10,6 +10,13 @@ export type ResolveAiAccessRequirementsInput = {
 };
 
 export function resolveAiAccessRequirements(input: ResolveAiAccessRequirementsInput): AiAccessRequirements {
+  if (input.fakeGenerationEnabled) {
+    return {
+      needsSignIn: false,
+      needsByok: false,
+    };
+  }
+
   const needsByok = input.fakeGenerationEnabled ? false : !input.hasByokKey;
 
   return {

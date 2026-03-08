@@ -1,6 +1,9 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export default clerkMiddleware();
+const bypassProxy = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
+
+export default bypassProxy ? (() => NextResponse.next()) : clerkMiddleware();
 
 export const config = {
   matcher: [

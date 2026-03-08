@@ -7,6 +7,7 @@ import type { GenerationJobRecord, GenerationJobRequest } from '@/lib/generation
 import { resolveHostModel } from '@/lib/model';
 
 export const runtime = 'nodejs';
+const FAKE_GENERATION_ENABLED = process.env.NEXT_PUBLIC_FAKE_GENERATION === '1';
 
 function isValidRequest(body: unknown): body is GenerationJobRequest {
   if (!body || typeof body !== 'object') return false;
@@ -24,8 +25,8 @@ function isValidRequest(body: unknown): body is GenerationJobRequest {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
+  const effectiveUserId = FAKE_GENERATION_ENABLED ? 'fake-generation-user' : (await auth()).userId;
+  if (!effectiveUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   let resolvedModel: string;
   try {
-    resolvedModel = resolveHostModel(body.model, { userId });
+    resolvedModel = resolveHostModel(body.model, { userId: effectiveUserId });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid model selection.';
     return NextResponse.json({ error: message }, { status: 403 });
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const job: GenerationJobRecord = {
     id: jobId,
-    userId,
+    userId: effectiveUserId,
     status: 'queued',
     request: {
       ...body,
