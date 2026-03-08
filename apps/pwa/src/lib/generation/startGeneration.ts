@@ -12,6 +12,7 @@ import { clearPersistedJob, getPersistedJob, persistActiveJob, toPersistedJob } 
 import { pollGenerationJob, StaleJobError } from './pollJob';
 import type { GenerationJobRecord, GenerationJobRequest } from './serverTypes';
 import { captureAnalyticsEvent, maybeCaptureFirstGenerationSuccess } from '@/lib/analytics/telemetry';
+import { markReconnectFailure, RECONNECTING_STATUS_TEXT } from './recovery';
 
 const activeStartPolls = new Set<string>();
 
@@ -365,11 +366,18 @@ export async function startGeneration(params: {
     const message = error instanceof Error ? error.message : String(error);
 
     if (jobPersisted && !(error instanceof StaleJobError)) {
-      if (await getPersistedJob(params.appId)) {
+      const persisted = await getPersistedJob(params.appId);
+      if (persisted) {
+        const reconnecting = markReconnectFailure({
+          ...persisted,
+          statusText: RECONNECTING_STATUS_TEXT,
+        });
+        await persistActiveJob(reconnecting);
+        hydrateGeneration(reconnecting);
         patchGeneration(params.appId, {
           busy: true,
           phase: 'running',
-          statusText: 'Reconnecting to generation job...',
+          statusText: RECONNECTING_STATUS_TEXT,
         });
       }
       return;

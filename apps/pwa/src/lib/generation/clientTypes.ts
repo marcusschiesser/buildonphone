@@ -28,7 +28,13 @@ type SharedPersistedJobFields = Pick<
   | 'completedAt'
 >;
 
-export interface PersistedGenerationJob extends SharedPersistedJobFields {
+export interface GenerationReconnectState {
+  reconnectStartedAt?: number;
+  resumeFailureCount?: number;
+  lastResumeFailureAt?: number;
+}
+
+export interface PersistedGenerationJob extends SharedPersistedJobFields, GenerationReconnectState {
   appId: string;
   nextVersion: number;
   appName: string;

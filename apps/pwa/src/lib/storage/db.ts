@@ -35,6 +35,9 @@ interface GenerationJobRow {
   updatedAt: number;
   startedAt?: number;
   completedAt?: number;
+  reconnectStartedAt?: number;
+  resumeFailureCount?: number;
+  lastResumeFailureAt?: number;
 }
 
 interface SharedImportRow {
@@ -183,6 +186,9 @@ function toPersistedGenerationJob(row: GenerationJobRow): PersistedGenerationJob
     updatedAt: row.updatedAt,
     startedAt: row.startedAt,
     completedAt: row.completedAt,
+    reconnectStartedAt: row.reconnectStartedAt,
+    resumeFailureCount: row.resumeFailureCount,
+    lastResumeFailureAt: row.lastResumeFailureAt,
   };
 }
 
@@ -202,6 +208,9 @@ function toGenerationJobRow(job: PersistedGenerationJob): GenerationJobRow {
     updatedAt: job.updatedAt,
     startedAt: job.startedAt,
     completedAt: job.completedAt,
+    reconnectStartedAt: job.reconnectStartedAt,
+    resumeFailureCount: job.resumeFailureCount,
+    lastResumeFailureAt: job.lastResumeFailureAt,
   };
 }
 

@@ -28,6 +28,9 @@ export function toPersistedJob(job: GenerationJobRecord, input: {
   nextVersion: number;
   appName: string;
   applyState?: PersistedGenerationJob['applyState'];
+  reconnectStartedAt?: number;
+  resumeFailureCount?: number;
+  lastResumeFailureAt?: number;
 }): PersistedGenerationJob {
   return {
     id: job.id,
@@ -44,5 +47,8 @@ export function toPersistedJob(job: GenerationJobRecord, input: {
     updatedAt: job.updatedAt,
     startedAt: job.startedAt,
     completedAt: job.completedAt,
+    reconnectStartedAt: input.reconnectStartedAt,
+    resumeFailureCount: input.resumeFailureCount,
+    lastResumeFailureAt: input.lastResumeFailureAt,
   };
 }
