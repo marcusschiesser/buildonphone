@@ -12,9 +12,11 @@
 
 # testing
 /coverage
+/test-results
 
 # next.js
 /.next/
+/.next-smoke/
 /out/
 
 # production
