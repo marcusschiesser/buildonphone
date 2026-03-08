@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { useIsClient } from '@/lib/ui/useIsClient';
 import {
   IonBackButton,
@@ -34,6 +33,7 @@ import { GenerationModelControl } from './navigation/generation-model-control';
 import { MobileTabs } from './navigation/mobile-tabs';
 import styles from './studio.module.css';
 import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
+import { useAppAuth } from '@/lib/auth/client';
 
 const PENDING_SEND_KEY = 'studio_pending_send';
 
@@ -60,7 +60,7 @@ export function Studio({
   initialMessages?: ChatMessage[];
   initialVersion?: number;
 }) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAppAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [version, setVersion] = useState<number>(initialVersion ?? 0);
   const [input, setInput] = useState('');

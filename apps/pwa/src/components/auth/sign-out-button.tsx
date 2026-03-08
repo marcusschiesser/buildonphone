@@ -1,13 +1,13 @@
 'use client';
 
 import { IonButton, IonIcon } from '@ionic/react';
-import { useAuth, useClerk } from '@clerk/nextjs';
 import { logOutOutline } from 'ionicons/icons';
 import { captureAnalyticsEvent } from '@/lib/analytics/telemetry';
+import { useAppAuth, useAppClerk } from '@/lib/auth/client';
 
 export function SignOutButton() {
-  const { isSignedIn } = useAuth();
-  const clerk = useClerk();
+  const { isSignedIn } = useAppAuth();
+  const clerk = useAppClerk();
 
   if (!isSignedIn) return null;
 

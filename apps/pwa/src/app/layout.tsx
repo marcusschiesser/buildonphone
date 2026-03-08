@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
 import '@ionic/react/css/structure.css';
@@ -14,6 +13,7 @@ import './globals.css';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 import { IonicRoot } from '@/components/ionic-root';
 import { PageTracker } from '@/components/analytics/page-tracker';
+import { AppAuthProvider } from '@/lib/auth/client';
 
 export const metadata: Metadata = {
   title: 'buildonphone.com',
@@ -37,11 +37,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192-v2.png" />
       </head>
       <body>
-        <ClerkProvider>
+        <AppAuthProvider>
           <IonicRoot>{children}</IonicRoot>
           <PageTracker />
           <ServiceWorkerRegistration />
-        </ClerkProvider>
+        </AppAuthProvider>
       </body>
     </html>
   );

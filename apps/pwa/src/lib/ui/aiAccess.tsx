@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { useAuth, useClerk } from '@clerk/nextjs';
 import { hasAnthropicKey } from '@/lib/security/byok';
 import { AiAccessModal } from '@/components/ai-access-modal';
 import { resolveAiAccessRequirements, type AiAccessRequirements } from './aiAccessRequirements';
+import { useAppAuth, useAppClerk } from '@/lib/auth/client';
 
 export type AiAccessPurpose = 'generation' | 'preview-ai';
 
@@ -26,8 +26,8 @@ export function isAuthRequiredError(error: unknown): error is AuthRequiredError 
 }
 
 export function useAiAccessGate() {
-  const { isSignedIn } = useAuth();
-  const clerk = useClerk();
+  const { isSignedIn } = useAppAuth();
+  const clerk = useAppClerk();
   const [modalState, setModalState] = useState<ModalState | null>(null);
   const pendingResolveRef = useRef<((result: { ok: boolean }) => void) | null>(null);
 
