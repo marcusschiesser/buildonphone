@@ -19,12 +19,14 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3100',
+    command: 'npm run build && npm run start -- --hostname 127.0.0.1 --port 3100',
     cwd: __dirname,
     url: 'http://127.0.0.1:3100',
     reuseExistingServer: false,
+    timeout: 180_000,
     env: {
       NEXT_PUBLIC_FAKE_GENERATION: '1',
+      GENERATION_JOB_STORE: 'memory',
       ANTHROPIC_API_KEY: '',
       APP_PASSWORD: '',
       NEXT_DIST_DIR: '.next-smoke',

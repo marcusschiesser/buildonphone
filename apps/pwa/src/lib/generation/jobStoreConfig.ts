@@ -6,7 +6,14 @@ function isFakeGenerationEnabled(env: NodeJS.ProcessEnv): boolean {
 
 export function resolveGenerationJobStoreMode(env: NodeJS.ProcessEnv): GenerationJobStoreMode {
   const configured = env.GENERATION_JOB_STORE?.trim();
-  const mode = configured === 'memory' ? 'memory' : 'redis';
+  const mode =
+    configured === 'memory'
+      ? 'memory'
+      : configured === 'redis'
+        ? 'redis'
+        : isFakeGenerationEnabled(env)
+          ? 'memory'
+          : 'redis';
 
   if (mode === 'memory' && !isFakeGenerationEnabled(env)) {
     throw new Error('GENERATION_JOB_STORE=memory is only allowed when fake generation is enabled.');

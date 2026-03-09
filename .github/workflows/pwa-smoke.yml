@@ -42,6 +42,7 @@ jobs:
       - name: Run PWA smoke test
         env:
           NEXT_PUBLIC_FAKE_GENERATION: '1'
+          GENERATION_JOB_STORE: 'memory'
         run: npm run smoke --workspace @buildonphone/pwa
 
       - name: Upload Playwright artifacts

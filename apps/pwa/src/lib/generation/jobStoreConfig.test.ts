@@ -12,6 +12,10 @@ describe('jobStoreConfig', () => {
     expect(resolveGenerationJobStoreMode(env())).toBe('redis');
   });
 
+  it('defaults to memory when fake generation is enabled', () => {
+    expect(resolveGenerationJobStoreMode(env({ NEXT_PUBLIC_FAKE_GENERATION: '1' }))).toBe('memory');
+  });
+
   it('allows memory mode only for fake generation', () => {
     expect(resolveGenerationJobStoreMode(env({ GENERATION_JOB_STORE: 'memory', NEXT_PUBLIC_FAKE_GENERATION: '1' }))).toBe('memory');
     expect(() => resolveGenerationJobStoreMode(env({ GENERATION_JOB_STORE: 'memory' }))).toThrow(
