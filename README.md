@@ -71,7 +71,6 @@ npm run typecheck --workspace @buildonphone/pwa
 | Variable | Required | Description |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Optional | Server-managed Anthropic key. When set, the in-app BYOK panel is hidden and all requests use this key automatically. |
-| `APP_PASSWORD` | Optional | Shared password to protect the hosted instance. Only active when `ANTHROPIC_API_KEY` is also set. Users must enter this password once; a 30-day cookie is then issued. |
 
 For local development, create `apps/pwa/.env.local`:
 

@@ -28,7 +28,6 @@ export default defineConfig({
       NEXT_PUBLIC_FAKE_GENERATION: '1',
       GENERATION_JOB_STORE: 'memory',
       ANTHROPIC_API_KEY: '',
-      APP_PASSWORD: '',
       NEXT_DIST_DIR: '.next-smoke',
     },
   },
